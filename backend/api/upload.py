@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from backend.services.csv_services import read_csv, get_dataset_summary
 from backend.services.file_service import save_uploaded_file
 from backend.config import (UPLOAD_FOLDER,ALLOWED_EXTENSIONS,MAX_FILE_SIZE_MB)
+from backend.schemas.dataset import UploadResponse, DatasetSummary
 
 
 router = APIRouter()
@@ -9,10 +10,13 @@ router = APIRouter()
 
 @router.post(
     "/upload",
+    response_model=UploadResponse,
     tags=["Dataset"],
     summary="Upload CSV Dataset",
     description="Upload a CSV dataset and generate a complete dataset profile."
 )
+
+
 async def upload_dataset(file: UploadFile = File(...)):
 
     # Validate file type
@@ -46,14 +50,15 @@ async def upload_dataset(file: UploadFile = File(...)):
         dataframe = read_csv(saved_path)
 
         # Generate dataset summary
+        # Generate dataset summary
         summary = get_dataset_summary(dataframe)
 
         # Return response
-        return {
-         "original_filename": file.filename,
-         "saved_path": saved_path,
-         **summary
-       }
+        return UploadResponse(
+          original_filename=file.filename,
+          saved_path=saved_path,
+          summary=DatasetSummary(**summary)
+       )
     except Exception as e:
       raise HTTPException(
         status_code=500,
