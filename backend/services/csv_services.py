@@ -9,6 +9,10 @@ def read_csv(file):
 
 
 def get_feature_summary(dataframe):
+    """
+    Categorizes features into numerical, categorical,
+    and boolean-like columns.
+    """
 
     numerical = dataframe.select_dtypes(
         include=["int64", "float64"]
@@ -31,6 +35,7 @@ def get_feature_summary(dataframe):
         "categorical": categorical,
         "boolean_like": boolean_like
     }
+
 
 def detect_identifier_columns(dataframe):
     """
@@ -71,29 +76,84 @@ def detect_identifier_columns(dataframe):
 
     return identifier_columns
 
+
+def detect_target_column(dataframe):
+    """
+    Attempts to identify the target column
+    using common machine learning keywords.
+    """
+
+    target_keywords = [
+        "target",
+        "label",
+        "class",
+        "output",
+        "result",
+        "prediction",
+        "price",
+        "salary",
+        "income",
+        "survived",
+        "species",
+        "diagnosis",
+        "quality",
+        "score",
+        "rating",
+        "churn",
+        "exit",
+        "exited"
+    ]
+
+    for column in dataframe.columns:
+
+        column_name = column.lower()
+
+        for keyword in target_keywords:
+
+            if keyword in column_name:
+                return column
+
+    return None
+
+
 def get_dataset_summary(dataframe):
     """
-    Returns basic information about the dataset.
+    Returns complete dataset profiling information.
     """
+
     feature_summary = get_feature_summary(dataframe)
+
     identifier_columns = detect_identifier_columns(dataframe)
+
+    target_column = detect_target_column(dataframe)
+
     summary = {
-        "identifier_columns": identifier_columns,
+
         "rows": len(dataframe),
+
         "columns": len(dataframe.columns),
 
         "column_names": dataframe.columns.tolist(),
 
+        "identifier_columns": identifier_columns,
+
+        "target_column": target_column,
+
         "data_types": dataframe.dtypes.astype(str).to_dict(),
+
         "feature_summary": feature_summary,
+
         "missing_values": dataframe.isnull().sum().to_dict(),
 
         "preview": dataframe.head().to_dict(orient="records"),
 
         "dataset_quality": {
+
             "duplicate_rows": int(dataframe.duplicated().sum()),
 
-            "total_missing_values": int(dataframe.isnull().sum().sum()),
+            "total_missing_values": int(
+                dataframe.isnull().sum().sum()
+            ),
 
             "missing_percentage": round(
                 (
@@ -104,7 +164,8 @@ def get_dataset_summary(dataframe):
             ),
 
             "memory_usage_mb": round(
-                dataframe.memory_usage(deep=True).sum() / (1024 * 1024),
+                dataframe.memory_usage(deep=True).sum()
+                / (1024 * 1024),
                 2,
             ),
         },
