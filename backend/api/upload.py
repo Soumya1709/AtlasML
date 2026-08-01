@@ -68,7 +68,7 @@ async def upload_dataset(file: UploadFile = File(...)):
         )
         
         agent = DatasetAgent()
-        updated_state = DatasetAgent.run(state)
+        updated_state = DatasetAgent().run(state)
 
         return UploadResponse(
          original_filename=file.filename,
