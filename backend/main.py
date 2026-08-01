@@ -12,7 +12,7 @@ app.include_router(upload_router)
 @app.get("/")
 def home():
     return {
-        "message": "Welcome to AtlasML 🚀"
+        "message": "Welcome to AtlasML"
     }
 
 @app.get("/health")

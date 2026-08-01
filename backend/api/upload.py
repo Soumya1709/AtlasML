@@ -22,7 +22,7 @@ router = APIRouter()
 
 async def upload_dataset(file: UploadFile = File(...)):
 
-    # Validate file type
+    
     if not any(file.filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS):
       raise HTTPException(
         status_code=400,
@@ -51,13 +51,13 @@ async def upload_dataset(file: UploadFile = File(...)):
     logger.info(f"Received upload request: {file.filename}")
 
     try:
-        # Read CSV
+        
         saved_path = save_uploaded_file(file, UPLOAD_FOLDER)
         dataframe = read_csv(saved_path)
         logger.info(f"Dataset saved at: {saved_path}")
 
         
-        # Generate dataset summary
+       
         summary = get_dataset_summary(dataframe)
         logger.info("Dataset summary generated successfully.")
         state = PipelineState(
