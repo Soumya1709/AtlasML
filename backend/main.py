@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from backend.api.upload import router as upload_router
+from backend.api.pipeline import router as pipeline_router
 
 app = FastAPI(
     title="AtlasML",

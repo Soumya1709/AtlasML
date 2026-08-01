@@ -1,18 +1,21 @@
 from backend.models.pipeline_state import PipelineState
+from backend.logger import logger
 
 
 class DatasetAgent:
 
     def run(self, state: PipelineState):
 
-        print("Dataset Agent Started")
+        logger.info("Dataset Agent Started")
 
-        print(state.dataset_path)
+        logger.info(f"Dataset Path: {state.dataset_path}")
 
-        print(state.summary["rows"])
+        logger.info(f"Rows: {state.summary['rows']}")
 
-        state.current_agent = "completed"
+        state.current_agent = "dataset_agent"
 
-        state.status = "success"
+        state.status = "completed"
+
+        logger.info("Dataset Agent Finished")
 
         return state

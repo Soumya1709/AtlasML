@@ -6,6 +6,7 @@ from backend.schemas.dataset import UploadResponse, DatasetSummary
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
 from backend.agents.dataset_agent import DatasetAgent
+from backend.pipelines.pipeline_manager import PipelineManager
 
 
 router = APIRouter()
@@ -68,7 +69,8 @@ async def upload_dataset(file: UploadFile = File(...)):
         )
         
         agent = DatasetAgent()
-        updated_state = DatasetAgent().run(state)
+        pipeline = PipelineManager()
+        updated_state = pipeline.run_pipeline(state)
 
         return UploadResponse(
          original_filename=file.filename,

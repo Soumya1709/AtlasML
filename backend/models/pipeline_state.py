@@ -12,3 +12,11 @@ class PipelineState(BaseModel):
     current_agent: str
 
     status: str
+
+    report: dict[str, Any] | None = None
+
+    trained_model: Any | None = None
+
+    shap_values: Any | None = None
+
+    metrics: dict[str, Any] | None = None
