@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from backend.api.upload import router as upload_router
+from backend.api.pipeline import router as pipeline_router
 
 app = FastAPI(
     title="AtlasML",
@@ -12,7 +13,7 @@ app.include_router(upload_router)
 @app.get("/")
 def home():
     return {
-        "message": "Welcome to AtlasML 🚀"
+        "message": "Welcome to AtlasML"
     }
 
 @app.get("/health")

@@ -6,6 +6,7 @@ from backend.schemas.dataset import UploadResponse, DatasetSummary
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
 from backend.agents.dataset_agent import DatasetAgent
+from backend.pipelines.pipeline_manager import PipelineManager
 
 
 router = APIRouter()
@@ -22,7 +23,7 @@ router = APIRouter()
 
 async def upload_dataset(file: UploadFile = File(...)):
 
-    # Validate file type
+    
     if not any(file.filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS):
       raise HTTPException(
         status_code=400,
@@ -51,13 +52,13 @@ async def upload_dataset(file: UploadFile = File(...)):
     logger.info(f"Received upload request: {file.filename}")
 
     try:
-        # Read CSV
+        
         saved_path = save_uploaded_file(file, UPLOAD_FOLDER)
         dataframe = read_csv(saved_path)
         logger.info(f"Dataset saved at: {saved_path}")
 
         
-        # Generate dataset summary
+       
         summary = get_dataset_summary(dataframe)
         logger.info("Dataset summary generated successfully.")
         state = PipelineState(
@@ -68,7 +69,8 @@ async def upload_dataset(file: UploadFile = File(...)):
         )
         
         agent = DatasetAgent()
-        updated_state = DatasetAgent.run(state)
+        pipeline = PipelineManager()
+        updated_state = pipeline.run_pipeline(state)
 
         return UploadResponse(
          original_filename=file.filename,
