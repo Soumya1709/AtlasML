@@ -1,23 +1,31 @@
 from backend.models.pipeline_state import PipelineState
+from backend.services.dataset_understanding import (
+    detect_identifier_columns,
+    detect_target_column
+)
 from backend.logger import logger
+
+import pandas as pd
 
 
 class DatasetAgent:
 
-    def run(self, state: PipelineState) -> PipelineState:
+    def run(self, state: PipelineState):
 
         logger.info("========== DATASET AGENT ==========")
 
-        logger.info(f"Dataset Path : {state.dataset_path}")
+        dataframe = pd.read_csv(state.dataset_path)
 
-        logger.info(f"Rows : {state.summary['rows']}")
+        identifier_columns = detect_identifier_columns(dataframe)
+        target_column = detect_target_column(dataframe)
 
-        logger.info(f"Columns : {state.summary['columns']}")
+        state.summary["identifier_columns"] = identifier_columns
+        state.summary["target_column"] = target_column
 
         state.current_agent = "dataset_agent"
+        state.status = "success"
 
-        state.status = "completed"
-
-        logger.info("Dataset Agent Completed")
+        logger.info(f"Target Column: {target_column}")
+        logger.info(f"Identifier Columns: {identifier_columns}")
 
         return state

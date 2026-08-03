@@ -17,6 +17,7 @@ class DatasetQuality(BaseModel):
 
 class DatasetSummary(BaseModel):
     identifier_columns: List[str]
+    target_column: str | None
     rows: int
     columns: int
     column_names: List[str]

@@ -1,27 +1,81 @@
-from backend.models.pipeline_state import PipelineState
-from backend.services.dataset_understanding import (
-    detect_identifier_columns
-)
-
-import pandas as pd
+from pandas import DataFrame
 
 
-class DatasetAgent:
+def detect_identifier_columns(dataframe: DataFrame):
+    """
+    Detect columns that are likely identifiers
+    and should not be used for training.
+    """
 
-    def run(self, state: PipelineState):
+    identifier_keywords = [
+        "id",
+        "index",
+        "row",
+        "customer",
+        "user",
+        "employee",
+        "student",
+        "transaction",
+        "invoice",
+        "product",
+        "order",
+    ]
 
-        print("========== DATASET AGENT ==========")
+    identifier_columns = []
 
-        dataframe = pd.read_csv(state.dataset_path)
+    for column in dataframe.columns:
 
-        identifier_columns = detect_identifier_columns(dataframe)
+        column_name = column.lower()
 
-        state.summary["identifier_columns"] = identifier_columns
+        if any(keyword in column_name for keyword in identifier_keywords):
+            identifier_columns.append(column)
+            continue
 
-        state.current_agent = "dataset_agent"
+        if dataframe[column].nunique() == len(dataframe):
+            identifier_columns.append(column)
 
-        state.status = "success"
+    return identifier_columns
 
-        print("Identifier Columns:", identifier_columns)
 
-        return state
+def detect_target_column(dataframe: DataFrame):
+    """
+    Detect the most likely target column
+    using common machine learning conventions.
+    """
+
+    target_keywords = [
+        "target",
+        "label",
+        "class",
+        "output",
+        "result",
+        "prediction",
+        "price",
+        "salary",
+        "income",
+        "survived",
+        "species",
+        "diagnosis",
+        "quality",
+        "score",
+        "rating",
+        "churn",
+        "exit",
+        "exited",
+        "default",
+        "fraud"
+    ]
+
+    for column in dataframe.columns:
+
+        column_name = column.lower()
+
+        if any(keyword in column_name for keyword in target_keywords):
+            return column
+
+    last_column = dataframe.columns[-1]
+
+    if dataframe[last_column].nunique() <= 20:
+        return last_column
+
+    return None
