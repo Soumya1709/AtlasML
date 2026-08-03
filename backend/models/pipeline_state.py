@@ -1,5 +1,4 @@
 from typing import Any
-
 from pydantic import BaseModel
 
 
@@ -13,10 +12,14 @@ class PipelineState(BaseModel):
 
     status: str
 
-    report: dict[str, Any] | None = None
+    cleaned_dataset: Any | None = None
+
+    selected_features: list[str] | None = None
 
     trained_model: Any | None = None
 
+    metrics: dict[str, Any] | None = None
+
     shap_values: Any | None = None
 
-    metrics: dict[str, Any] | None = None
+    report: dict[str, Any] | None = None
