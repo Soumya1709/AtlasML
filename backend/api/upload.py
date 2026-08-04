@@ -7,6 +7,7 @@ from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
 from backend.agents.dataset_agent import DatasetAgent
 from backend.pipelines.pipeline_manager import PipelineManager
+from backend.services.pipeline_service import execute_pipeline
 
 
 router = APIRouter()
@@ -61,6 +62,11 @@ async def upload_dataset(file: UploadFile = File(...)):
        
         summary = get_dataset_summary(dataframe)
         logger.info("Dataset summary generated successfully.")
+        experiment = create_experiment(
+          dataset_name=file.filename,
+          dataset_path=saved_path
+        )
+
         state = PipelineState(
           dataset_path=saved_path,
           summary=summary,
