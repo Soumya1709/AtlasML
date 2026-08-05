@@ -19,6 +19,7 @@ class DatasetSummary(BaseModel):
     identifier_columns: List[str]
     target_column: str | None
     problem_type: str
+    datetime_columns: List[str]
     rows: int
     columns: int
     column_names: List[str]
