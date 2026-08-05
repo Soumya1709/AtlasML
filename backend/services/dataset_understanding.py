@@ -77,8 +77,9 @@ def detect_target_column(dataframe: DataFrame):
 
     if dataframe[last_column].nunique() <= 20:
         return last_column
-    
-    def detect_problem_type(dataframe: DataFrame, target_column):
+return None
+
+def detect_problem_type(dataframe: DataFrame, target_column):
     """
     Detect whether the dataset is a Classification
     or Regression problem.
@@ -95,11 +96,42 @@ def detect_target_column(dataframe: DataFrame):
 
     unique_values = target.nunique()
 
-    # Numeric column with few unique values
-    # (e.g., 0/1, 1/2/3)
     if unique_values <= 20:
         return "Classification"
 
     return "Regression"
 
-    return None
+    def detect_datetime_columns(dataframe: DataFrame):
+    """
+    Detect columns that contain date or time information.
+    """
+
+    datetime_keywords = [
+        "date",
+        "time",
+        "year",
+        "month",
+        "day",
+        "timestamp",
+        "created",
+        "updated",
+        "dob",
+        "birth"
+    ]
+
+    datetime_columns = []
+
+    for column in dataframe.columns:
+
+        column_name = column.lower()
+
+        # Rule 1: Detect by column name
+        if any(keyword in column_name for keyword in datetime_keywords):
+            datetime_columns.append(column)
+            continue
+
+        # Rule 2: Detect datetime dtype
+        if str(dataframe[column].dtype).startswith("datetime"):
+            datetime_columns.append(column)
+
+    return datetime_columns
