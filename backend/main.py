@@ -12,6 +12,7 @@ app = FastAPI(
 
 app.include_router(upload_router)
 app.include_router(experiment_router)
+app.include_router(pipeline_router)
 
 @app.get("/")
 def home():

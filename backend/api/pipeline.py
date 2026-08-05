@@ -1,15 +1,27 @@
 from fastapi import APIRouter
 
+from backend.pipelines.pipeline_manager import PipelineManager
+
 router = APIRouter(
     prefix="/pipeline",
     tags=["Pipeline"]
 )
 
 
-@router.get("/status")
-def pipeline_status():
+@router.get("/info")
+def pipeline_info():
+
+    manager = PipelineManager()
 
     return {
-        "status": "ready",
-        "message": "Pipeline Manager Ready"
+
+        "registered_agents": [
+
+            agent.__class__.__name__
+
+            for agent in manager.agents
+
+        ],
+
+        "total_agents": len(manager.agents)
     }

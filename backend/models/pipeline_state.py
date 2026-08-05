@@ -1,5 +1,5 @@
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PipelineState(BaseModel):
@@ -11,6 +11,8 @@ class PipelineState(BaseModel):
     current_agent: str
 
     status: str
+
+    executed_agents: list[str] = Field(default_factory=list)
 
     cleaned_dataset: Any | None = None
 
