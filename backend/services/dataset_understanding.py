@@ -135,3 +135,28 @@ def detect_problem_type(dataframe: DataFrame, target_column):
             datetime_columns.append(column)
 
     return datetime_columns
+
+    def detect_text_columns(dataframe: DataFrame):
+    """
+    Detect columns containing long free-text data.
+    """
+
+    text_columns = []
+
+    for column in dataframe.columns:
+
+        if dataframe[column].dtype != "object":
+            continue
+
+        average_length = (
+            dataframe[column]
+            .dropna()
+            .astype(str)
+            .str.len()
+            .mean()
+        )
+
+        if average_length > 30:
+            text_columns.append(column)
+
+    return text_columns
