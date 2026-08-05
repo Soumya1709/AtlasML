@@ -160,3 +160,17 @@ def detect_problem_type(dataframe: DataFrame, target_column):
             text_columns.append(column)
 
     return text_columns
+
+def detect_constant_columns(dataframe: DataFrame):
+    """
+    Detect columns having only one unique value.
+    """
+
+    constant_columns = []
+
+    for column in dataframe.columns:
+
+        if dataframe[column].nunique(dropna=False) == 1:
+            constant_columns.append(column)
+
+    return constant_columns

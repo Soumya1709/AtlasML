@@ -3,7 +3,8 @@ from backend.services.dataset_understanding import (
     detect_target_column,
     detect_problem_type,
     detect_datetime_columns,
-    detect_text_columns
+    detect_text_columns,
+    detect_constant_columns
 )
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
@@ -27,12 +28,14 @@ class DatasetAgent:
 )
        datetime_columns = detect_datetime_columns(dataframe)
        text_columns = detect_text_columns(dataframe)
+       constant_columns = detect_constant_columns(dataframe)
 
         state.summary["identifier_columns"] = identifier_columns
         state.summary["target_column"] = target_column
         state.summary["problem_type"] = problem_type
         state.summary["datetime_columns"] = datetime_columns
         state.summary["text_columns"] = text_columns
+        state.summary["constant_columns"] = constant_columns
         state.current_agent = "dataset_agent"
         state.status = "success"
 
@@ -41,5 +44,6 @@ class DatasetAgent:
         logger.info(f"Problem Type: {problem_type}")
         logger.info(f"Datetime Columns: {datetime_columns}")
         logger.info(f"Text Columns: {text_columns}")
+        logger.info(f"Constant Columns: {constant_columns}")
 
         return state

@@ -21,6 +21,7 @@ class DatasetSummary(BaseModel):
     problem_type: str
     datetime_columns: List[str]
     text_columns: List[str]
+    constant_columns: List[str]
     rows: int
     columns: int
     column_names: List[str]
