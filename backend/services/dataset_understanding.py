@@ -77,5 +77,29 @@ def detect_target_column(dataframe: DataFrame):
 
     if dataframe[last_column].nunique() <= 20:
         return last_column
+    
+    def detect_problem_type(dataframe: DataFrame, target_column):
+    """
+    Detect whether the dataset is a Classification
+    or Regression problem.
+    """
+
+    if target_column is None:
+        return "Unknown"
+
+    target = dataframe[target_column]
+
+    # Text targets are always classification
+    if target.dtype == "object":
+        return "Classification"
+
+    unique_values = target.nunique()
+
+    # Numeric column with few unique values
+    # (e.g., 0/1, 1/2/3)
+    if unique_values <= 20:
+        return "Classification"
+
+    return "Regression"
 
     return None

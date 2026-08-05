@@ -1,7 +1,7 @@
-from backend.models.pipeline_state import PipelineState
 from backend.services.dataset_understanding import (
     detect_identifier_columns,
-    detect_target_column
+    detect_target_column,
+    detect_problem_type
 )
 from backend.logger import logger
 
