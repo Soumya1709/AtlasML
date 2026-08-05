@@ -174,3 +174,27 @@ def detect_constant_columns(dataframe: DataFrame):
             constant_columns.append(column)
 
     return constant_columns
+
+def detect_high_cardinality_columns(dataframe: DataFrame):
+    """
+    Detect categorical columns having too many unique values.
+    """
+
+    high_cardinality_columns = []
+
+    for column in dataframe.columns:
+
+        # Only check categorical columns
+        if dataframe[column].dtype != "object":
+            continue
+
+        unique_ratio = (
+            dataframe[column].nunique()
+            / len(dataframe)
+        )
+
+        # More than 50% unique values
+        if unique_ratio > 0.5:
+            high_cardinality_columns.append(column)
+
+    return high_cardinality_columns

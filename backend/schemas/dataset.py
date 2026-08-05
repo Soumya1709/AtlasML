@@ -22,6 +22,7 @@ class DatasetSummary(BaseModel):
     datetime_columns: List[str]
     text_columns: List[str]
     constant_columns: List[str]
+    high_cardinality_columns: List[str]
     rows: int
     columns: int
     column_names: List[str]
