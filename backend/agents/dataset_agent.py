@@ -5,7 +5,8 @@ from backend.services.dataset_understanding import (
     detect_datetime_columns,
     detect_text_columns,
     detect_constant_columns,
-    detect_high_cardinality_columns
+    detect_high_cardinality_columns,
+    generate_dataset_problems
 )
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
@@ -31,6 +32,7 @@ class DatasetAgent:
        text_columns = detect_text_columns(dataframe)
        constant_columns = detect_constant_columns(dataframe)
        high_cardinality_columns = detect_high_cardinality_columns(dataframe)
+       dataset_problems = generate_dataset_problems(state.summary)
 
         state.summary["identifier_columns"] = identifier_columns
         state.summary["target_column"] = target_column
@@ -39,6 +41,7 @@ class DatasetAgent:
         state.summary["text_columns"] = text_columns
         state.summary["constant_columns"] = constant_columns
         state.summary["high_cardinality_columns"] = high_cardinality_columns
+        state.summary["dataset_problems"] = dataset_problems
         state.current_agent = "dataset_agent"
         state.status = "success"
 
@@ -49,5 +52,6 @@ class DatasetAgent:
         logger.info(f"Text Columns: {text_columns}")
         logger.info(f"Constant Columns: {constant_columns}")
         logger.info(f"High Cardinality Columns: {high_cardinality_columns}")
+        logger.info(f"Dataset Problems: {dataset_problems}")
 
         return state

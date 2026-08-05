@@ -198,3 +198,38 @@ def detect_high_cardinality_columns(dataframe: DataFrame):
             high_cardinality_columns.append(column)
 
     return high_cardinality_columns
+
+
+def generate_dataset_problems(summary):
+    """
+    Generate a human-readable summary of potential
+    dataset issues detected during analysis.
+    """
+
+    problems = []
+
+    if summary["identifier_columns"]:
+        problems.append("Identifier columns detected.")
+
+    if summary["constant_columns"]:
+        problems.append("Constant columns detected.")
+
+    if summary["high_cardinality_columns"]:
+        problems.append("High-cardinality columns detected.")
+
+    if summary["text_columns"]:
+        problems.append("Text columns detected.")
+
+    if summary["datetime_columns"]:
+        problems.append("Datetime columns detected.")
+
+    if summary["dataset_quality"]["duplicate_rows"] > 0:
+        problems.append("Duplicate rows found.")
+
+    if summary["dataset_quality"]["total_missing_values"] > 0:
+        problems.append("Missing values detected.")
+
+    if not problems:
+        problems.append("No major dataset problems detected.")
+
+    return problems

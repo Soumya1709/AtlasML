@@ -23,6 +23,7 @@ class DatasetSummary(BaseModel):
     text_columns: List[str]
     constant_columns: List[str]
     high_cardinality_columns: List[str]
+    dataset_problems: List[str]
     rows: int
     columns: int
     column_names: List[str]
