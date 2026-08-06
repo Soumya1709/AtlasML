@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from backend.services.csv_services import (
     read_csv,
-    get_dataset_summary
+    get_dataset_summary,
 )
 from backend.services.file_service import save_uploaded_file
 from backend.services.pipeline_service import execute_pipeline
@@ -39,24 +39,23 @@ async def upload_dataset(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-
-    
+    # Validate extension
     if not any(
         file.filename.lower().endswith(ext)
         for ext in ALLOWED_EXTENSIONS
     ):
         raise HTTPException(
             status_code=400,
-            detail=f"Only {', '.join(ALLOWED_EXTENSIONS)} files are allowed."
+            detail=f"Only {', '.join(ALLOWED_EXTENSIONS)} files are allowed.",
         )
 
-    
+    # Validate file size
     contents = await file.read()
 
     if len(contents) == 0:
         raise HTTPException(
             status_code=400,
-            detail="Uploaded file is empty."
+            detail="Uploaded file is empty.",
         )
 
     await file.seek(0)
@@ -66,30 +65,29 @@ async def upload_dataset(
     if file_size_mb > MAX_FILE_SIZE_MB:
         raise HTTPException(
             status_code=400,
-            detail=f"Maximum allowed file size is {MAX_FILE_SIZE_MB} MB."
+            detail=f"Maximum allowed file size is {MAX_FILE_SIZE_MB} MB.",
         )
 
     logger.info(f"Received upload request: {file.filename}")
 
     try:
-
-        
+        # Save uploaded file
         saved_path = save_uploaded_file(
             file,
-            UPLOAD_FOLDER
+            UPLOAD_FOLDER,
         )
 
         logger.info(f"Dataset saved at: {saved_path}")
 
-        
+        # Read CSV
         dataframe = read_csv(saved_path)
 
-        
+        # Generate dataset summary
         summary = get_dataset_summary(dataframe)
 
         logger.info("Dataset summary generated successfully.")
 
-        
+        # Save experiment to PostgreSQL
         experiment = create_experiment(
             db=db,
             dataset_name=file.filename,
@@ -100,7 +98,7 @@ async def upload_dataset(
             f"Experiment created successfully: {experiment.experiment_id}"
         )
 
-        
+        # Create pipeline state
         state = PipelineState(
             dataset_path=saved_path,
             summary=summary,
@@ -108,14 +106,13 @@ async def upload_dataset(
             status="running",
         )
 
-        
+        # Execute pipeline
         updated_state = execute_pipeline(state)
 
         logger.info(
             f"Pipeline completed with status: {updated_state.status}"
         )
 
-      
         return UploadResponse(
             original_filename=file.filename,
             saved_path=saved_path,
@@ -123,7 +120,6 @@ async def upload_dataset(
         )
 
     except Exception as e:
-
         logger.exception("Dataset upload failed")
 
         raise HTTPException(

@@ -17,6 +17,13 @@ class DatasetQuality(BaseModel):
 
 class DatasetSummary(BaseModel):
     identifier_columns: List[str]
+    target_column: str | None
+    problem_type: str
+    datetime_columns: List[str]
+    text_columns: List[str]
+    constant_columns: List[str]
+    high_cardinality_columns: List[str]
+    dataset_problems: List[str]
     rows: int
     columns: int
     column_names: List[str]
