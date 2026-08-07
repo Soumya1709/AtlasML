@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Float, Text
 from datetime import datetime
 
 from backend.database.database import Base
@@ -37,4 +37,24 @@ class Experiment(Base):
         DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
+    )
+
+    current_agent = Column(
+        String,
+        nullable=True
+    )
+
+    pipeline_status = Column(
+        String,
+        default="uploaded"
+    )
+
+    execution_time = Column(
+        Float,
+        nullable=True
+    )
+
+    error_message = Column(
+        Text,
+        nullable=True
     )

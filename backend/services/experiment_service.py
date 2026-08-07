@@ -49,3 +49,36 @@ def get_all_experiments(
 ):
 
     return db.query(Experiment).all()
+
+def update_experiment_status(
+    db: Session,
+    experiment_id: str,
+    status: str,
+    current_agent: str = None,
+    execution_time: float = None,
+    error_message: str = None,
+):
+    experiment = (
+        db.query(Experiment)
+        .filter(Experiment.experiment_id == experiment_id)
+        .first()
+    )
+
+    if experiment is None:
+        return None
+
+    experiment.pipeline_status = status
+
+    if current_agent is not None:
+        experiment.current_agent = current_agent
+
+    if execution_time is not None:
+        experiment.execution_time = execution_time
+
+    if error_message is not None:
+        experiment.error_message = error_message
+
+    db.commit()
+    db.refresh(experiment)
+
+    return experiment

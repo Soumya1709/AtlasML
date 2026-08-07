@@ -25,3 +25,5 @@ class PipelineState(BaseModel):
     shap_values: Any | None = None
 
     report: dict[str, Any] | None = None
+    
+    experiment_id: str
