@@ -18,7 +18,7 @@ import pandas as pd
 
 class DatasetAgent(BaseAgent):
 
-    def run(self, state: PipelineState):
+    def run(self, state: PipelineState) -> PipelineState:
 
         logger.info("========== DATASET AGENT ==========")
 
@@ -33,7 +33,7 @@ class DatasetAgent(BaseAgent):
 
         problem_type = detect_problem_type(
             dataframe,
-            target_column
+            target_column,
         )
 
         datetime_columns = detect_datetime_columns(dataframe)
@@ -54,7 +54,7 @@ class DatasetAgent(BaseAgent):
         state.current_agent = "dataset_agent"
         state.status = "success"
 
-        # If your PipelineState has executed_agents
+        # Only if PipelineState contains executed_agents
         if hasattr(state, "executed_agents"):
             state.executed_agents.append("DatasetAgent")
 
