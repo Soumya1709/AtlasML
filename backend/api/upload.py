@@ -39,11 +39,7 @@ async def upload_dataset(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-<<<<<<< HEAD
     # Validate file extension
-=======
-    # Validate extension
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
     if not any(
         file.filename.lower().endswith(ext)
         for ext in ALLOWED_EXTENSIONS
@@ -53,11 +49,7 @@ async def upload_dataset(
             detail=f"Only {', '.join(ALLOWED_EXTENSIONS)} files are allowed.",
         )
 
-<<<<<<< HEAD
     # Read file to validate size
-=======
-    # Validate file size
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
     contents = await file.read()
 
     if len(contents) == 0:
@@ -81,11 +73,7 @@ async def upload_dataset(
     logger.info(f"Received upload request: {file.filename}")
 
     try:
-<<<<<<< HEAD
         # Save uploaded CSV
-=======
-        # Save uploaded file
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
         saved_path = save_uploaded_file(
             file,
             UPLOAD_FOLDER,
@@ -93,11 +81,7 @@ async def upload_dataset(
 
         logger.info(f"Dataset saved at: {saved_path}")
 
-<<<<<<< HEAD
         # Read dataset
-=======
-        # Read CSV
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
         dataframe = read_csv(saved_path)
 
         # Generate dataset summary
@@ -105,11 +89,7 @@ async def upload_dataset(
 
         logger.info("Dataset summary generated successfully.")
 
-<<<<<<< HEAD
         # Create experiment in Neon PostgreSQL
-=======
-        # Save experiment to PostgreSQL
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
         experiment = create_experiment(
             db=db,
             dataset_name=file.filename,
@@ -130,23 +110,16 @@ async def upload_dataset(
         )
 
         # Execute pipeline
-<<<<<<< HEAD
         updated_state = execute_pipeline(
             state=state,
             db=db,
         )
-=======
-        updated_state = execute_pipeline(state)
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
 
         logger.info(
             f"Pipeline completed with status: {updated_state.status}"
         )
 
-<<<<<<< HEAD
         # Return response
-=======
->>>>>>> 2ed7d37d9544842b3898f7940f5f4b8ceb36b263
         return UploadResponse(
             original_filename=file.filename,
             saved_path=saved_path,
