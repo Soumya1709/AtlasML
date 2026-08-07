@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+
+from backend.database.database import get_db
 
 from backend.services.experiment_service import (
     get_all_experiments,
@@ -12,14 +15,22 @@ router = APIRouter(
 
 
 @router.get("/")
-def all_experiments():
-    return get_all_experiments()
+def all_experiments(
+    db: Session = Depends(get_db)
+):
+    return get_all_experiments(db)
 
 
 @router.get("/{experiment_id}")
-def experiment(experiment_id: str):
+def experiment(
+    experiment_id: str,
+    db: Session = Depends(get_db)
+):
 
-    experiment = get_experiment(experiment_id)
+    experiment = get_experiment(
+        db,
+        experiment_id
+    )
 
     if experiment is None:
         raise HTTPException(

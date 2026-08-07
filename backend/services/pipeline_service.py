@@ -2,8 +2,10 @@ from backend.models.pipeline_state import PipelineState
 from backend.pipelines.pipeline_manager import PipelineManager
 
 
-def execute_pipeline(state: PipelineState) -> PipelineState:
+def execute_pipeline(
+    state: PipelineState
+) -> PipelineState:
 
-    pipeline = PipelineManager()
+    manager = PipelineManager()
 
-    return pipeline.run_pipeline(state)
+    return manager.run_pipeline(state)
