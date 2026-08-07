@@ -3,8 +3,7 @@ from pandas import DataFrame
 
 def detect_identifier_columns(dataframe: DataFrame):
     """
-    Detect columns that are likely identifiers
-    and should not be used for training.
+    Detect columns that are likely identifiers.
     """
 
     identifier_keywords = [
@@ -24,7 +23,6 @@ def detect_identifier_columns(dataframe: DataFrame):
     identifier_columns = []
 
     for column in dataframe.columns:
-
         column_name = column.lower()
 
         if any(keyword in column_name for keyword in identifier_keywords):
@@ -39,8 +37,7 @@ def detect_identifier_columns(dataframe: DataFrame):
 
 def detect_target_column(dataframe: DataFrame):
     """
-    Detect the most likely target column
-    using common machine learning conventions.
+    Detect the most likely target column.
     """
 
     target_keywords = [
@@ -63,11 +60,10 @@ def detect_target_column(dataframe: DataFrame):
         "exit",
         "exited",
         "default",
-        "fraud"
+        "fraud",
     ]
 
     for column in dataframe.columns:
-
         column_name = column.lower()
 
         if any(keyword in column_name for keyword in target_keywords):
@@ -77,12 +73,13 @@ def detect_target_column(dataframe: DataFrame):
 
     if dataframe[last_column].nunique() <= 20:
         return last_column
-return None
+
+    return None
+
 
 def detect_problem_type(dataframe: DataFrame, target_column):
     """
-    Detect whether the dataset is a Classification
-    or Regression problem.
+    Detect whether the dataset is Classification or Regression.
     """
 
     if target_column is None:
@@ -90,20 +87,18 @@ def detect_problem_type(dataframe: DataFrame, target_column):
 
     target = dataframe[target_column]
 
-    # Text targets are always classification
     if target.dtype == "object":
         return "Classification"
 
-    unique_values = target.nunique()
-
-    if unique_values <= 20:
+    if target.nunique() <= 20:
         return "Classification"
 
     return "Regression"
 
-    def detect_datetime_columns(dataframe: DataFrame):
+
+def detect_datetime_columns(dataframe: DataFrame):
     """
-    Detect columns that contain date or time information.
+    Detect datetime columns.
     """
 
     datetime_keywords = [
@@ -116,29 +111,27 @@ def detect_problem_type(dataframe: DataFrame, target_column):
         "created",
         "updated",
         "dob",
-        "birth"
+        "birth",
     ]
 
     datetime_columns = []
 
     for column in dataframe.columns:
-
         column_name = column.lower()
 
-        # Rule 1: Detect by column name
         if any(keyword in column_name for keyword in datetime_keywords):
             datetime_columns.append(column)
             continue
 
-        # Rule 2: Detect datetime dtype
         if str(dataframe[column].dtype).startswith("datetime"):
             datetime_columns.append(column)
 
     return datetime_columns
 
-    def detect_text_columns(dataframe: DataFrame):
+
+def detect_text_columns(dataframe: DataFrame):
     """
-    Detect columns containing long free-text data.
+    Detect long text columns.
     """
 
     text_columns = []
@@ -161,9 +154,10 @@ def detect_problem_type(dataframe: DataFrame, target_column):
 
     return text_columns
 
+
 def detect_constant_columns(dataframe: DataFrame):
     """
-    Detect columns having only one unique value.
+    Detect constant columns.
     """
 
     constant_columns = []
@@ -175,25 +169,21 @@ def detect_constant_columns(dataframe: DataFrame):
 
     return constant_columns
 
+
 def detect_high_cardinality_columns(dataframe: DataFrame):
     """
-    Detect categorical columns having too many unique values.
+    Detect high-cardinality categorical columns.
     """
 
     high_cardinality_columns = []
 
     for column in dataframe.columns:
 
-        # Only check categorical columns
         if dataframe[column].dtype != "object":
             continue
 
-        unique_ratio = (
-            dataframe[column].nunique()
-            / len(dataframe)
-        )
+        unique_ratio = dataframe[column].nunique() / len(dataframe)
 
-        # More than 50% unique values
         if unique_ratio > 0.5:
             high_cardinality_columns.append(column)
 
@@ -202,25 +192,24 @@ def detect_high_cardinality_columns(dataframe: DataFrame):
 
 def generate_dataset_problems(summary):
     """
-    Generate a human-readable summary of potential
-    dataset issues detected during analysis.
+    Generate human-readable dataset issues.
     """
 
     problems = []
 
-    if summary["identifier_columns"]:
+    if summary.get("identifier_columns"):
         problems.append("Identifier columns detected.")
 
-    if summary["constant_columns"]:
+    if summary.get("constant_columns"):
         problems.append("Constant columns detected.")
 
-    if summary["high_cardinality_columns"]:
+    if summary.get("high_cardinality_columns"):
         problems.append("High-cardinality columns detected.")
 
-    if summary["text_columns"]:
+    if summary.get("text_columns"):
         problems.append("Text columns detected.")
 
-    if summary["datetime_columns"]:
+    if summary.get("datetime_columns"):
         problems.append("Datetime columns detected.")
 
     if summary["dataset_quality"]["duplicate_rows"] > 0:
