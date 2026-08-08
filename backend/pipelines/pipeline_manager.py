@@ -27,33 +27,33 @@ class PipelineManager:
         start = time.time()
 
         try:
-            
-            update_experiment_status(
-                db=db,
-                experiment_id=state.experiment_id,
-                status="running",
-                current_agent="DatasetAgent",
-            )
 
             for agent in self.agents:
 
+                agent_name = agent.__class__.__name__
+
                 logger.info(
-                    f"Running {agent.__class__.__name__}"
+                    f"Running {agent_name}"
                 )
 
-                state.current_agent = agent.__class__.__name__
+                state.current_agent = agent_name
+
+                update_experiment_status(
+                    db=db,
+                    experiment_id=state.experiment_id,
+                    status="running",
+                    current_agent=agent_name,
+                )
 
                 state = agent.run(state)
 
-            end = time.time()
-
-            execution_time = round(end - start, 2)
-
-            logger.info(
-                f"Pipeline Completed in {execution_time} seconds"
+            execution_time = round(
+                time.time() - start,
+                2
             )
 
-            
+            state.status = "completed"
+
             update_experiment_status(
                 db=db,
                 experiment_id=state.experiment_id,
@@ -62,11 +62,15 @@ class PipelineManager:
                 execution_time=execution_time,
             )
 
+            logger.info(
+                f"Pipeline completed in {execution_time} seconds"
+            )
+
             return state
 
         except Exception as e:
 
-            logger.exception("Pipeline Failed")
+            logger.exception("Pipeline failed")
 
             update_experiment_status(
                 db=db,
@@ -75,5 +79,7 @@ class PipelineManager:
                 current_agent=state.current_agent,
                 error_message=str(e),
             )
+
+            state.status = "failed"
 
             raise
