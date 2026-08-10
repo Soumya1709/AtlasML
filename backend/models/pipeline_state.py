@@ -1,5 +1,6 @@
 from typing import Any
 from pydantic import BaseModel, Field
+from pandas import DataFrame
 
 
 class PipelineState(BaseModel):
@@ -25,5 +26,7 @@ class PipelineState(BaseModel):
     shap_values: Any | None = None
 
     report: dict[str, Any] | None = None
+
+    cleaned_dataframe: DataFrame | None = None
     
     experiment_id: str
