@@ -1,17 +1,56 @@
+from sqlalchemy import Column, String, DateTime, Float, Text
 from datetime import datetime
-from pydantic import BaseModel
+
+from backend.database.database import Base
 
 
-class Experiment(BaseModel):
+class Experiment(Base):
 
-    experiment_id: str
+    __tablename__ = "experiments"
 
-    dataset_name: str
+    experiment_id = Column(
+        String,
+        primary_key=True,
+        index=True
+    )
 
-    dataset_path: str
+    dataset_name = Column(
+        String,
+        nullable=False
+    )
 
-    status: str
+    dataset_path = Column(
+        String,
+        nullable=False
+    )
 
-    created_at: datetime
+    status = Column(
+        String,
+        default="uploaded"
+    )
 
-    updated_at: datetime
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+    current_agent = Column(
+        String,
+        nullable=True
+    )
+
+    execution_time = Column(
+        Float,
+        nullable=True
+    )
+
+    error_message = Column(
+        Text,
+        nullable=True
+    )

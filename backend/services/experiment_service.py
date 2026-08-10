@@ -67,7 +67,7 @@ def update_experiment_status(
     if experiment is None:
         return None
 
-    experiment.pipeline_status = status
+    experiment.status = status
 
     if current_agent is not None:
         experiment.current_agent = current_agent

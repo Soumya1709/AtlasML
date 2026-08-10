@@ -123,7 +123,7 @@ async def upload_dataset(
         return UploadResponse(
             original_filename=file.filename,
             saved_path=saved_path,
-            summary=DatasetSummary(**summary),
+            summary=DatasetSummary(**updated_state.summary),
         )
 
     except Exception as e:
