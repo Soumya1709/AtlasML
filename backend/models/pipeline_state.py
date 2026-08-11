@@ -1,9 +1,11 @@
 from typing import Any
+
 from pydantic import BaseModel, Field
-from pandas import DataFrame
 
 
 class PipelineState(BaseModel):
+
+    experiment_id: str
 
     dataset_path: str
 
@@ -13,7 +15,9 @@ class PipelineState(BaseModel):
 
     status: str
 
-    executed_agents: list[str] = Field(default_factory=list)
+    executed_agents: list[str] = Field(
+        default_factory=list
+    )
 
     cleaned_dataset: Any | None = None
 
@@ -26,7 +30,3 @@ class PipelineState(BaseModel):
     shap_values: Any | None = None
 
     report: dict[str, Any] | None = None
-
-    cleaned_dataframe: DataFrame | None = None
-    
-    experiment_id: str
