@@ -44,6 +44,11 @@ class Experiment(Base):
         String,
         nullable=True
     )
+    
+    pipeline_status = Column(
+        String,
+        default="uploaded"
+    )
 
     execution_time = Column(
         Float,

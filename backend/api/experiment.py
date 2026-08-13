@@ -2,41 +2,39 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.database.database import get_db
-
 from backend.services.experiment_service import (
     get_all_experiments,
     get_experiment,
 )
-
 from backend.schemas.experiment import ExperimentResponse
 
 
 router = APIRouter(
     prefix="/experiments",
-    tags=["Experiments"]
+    tags=["Experiments"],
 )
 
 
 @router.get(
-    "/",
-    response_model=list[ExperimentResponse]
+    "",
+    response_model=list[ExperimentResponse],
 )
-def all_experiments(
+def list_experiments(
     db: Session = Depends(get_db),
 ):
+    experiments = get_all_experiments(db)
 
-    return get_all_experiments(db)
+    return experiments
 
 
 @router.get(
     "/{experiment_id}",
-    response_model=ExperimentResponse
+    response_model=ExperimentResponse,
 )
-def experiment(
+def get_experiment_by_id(
     experiment_id: str,
     db: Session = Depends(get_db),
 ):
-
     experiment = get_experiment(
         db=db,
         experiment_id=experiment_id,
