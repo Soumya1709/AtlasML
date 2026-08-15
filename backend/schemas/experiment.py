@@ -1,28 +1,17 @@
 from datetime import datetime
-from typing import Optional
-
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ExperimentResponse(BaseModel):
-
     experiment_id: str
-
     dataset_name: str
-
     dataset_path: str
-
     status: str
-
-    current_agent: Optional[str] = None
-
-    execution_time: Optional[float] = None
-
-    error_message: Optional[str] = None
-
     created_at: datetime
-
     updated_at: datetime
+    current_agent: str | None = None
+    pipeline_status: str = "uploaded"
+    execution_time: float | None = None
+    error_message: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

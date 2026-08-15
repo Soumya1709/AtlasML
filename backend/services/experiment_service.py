@@ -30,11 +30,18 @@ def create_experiment(
     return experiment
 
 
+def get_all_experiments(db: Session):
+    return (
+        db.query(Experiment)
+        .order_by(Experiment.created_at.desc())
+        .all()
+    )
+
+
 def get_experiment(
     db: Session,
     experiment_id: str,
 ):
-
     return (
         db.query(Experiment)
         .filter(
@@ -42,13 +49,6 @@ def get_experiment(
         )
         .first()
     )
-
-
-def get_all_experiments(
-    db: Session,
-):
-
-    return db.query(Experiment).all()
 
 def update_experiment_status(
     db: Session,
