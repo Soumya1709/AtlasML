@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Float, Text
+from sqlalchemy import Column, String, DateTime, Float, Text, JSON
 from datetime import datetime
 
 from backend.database.database import Base
@@ -44,7 +44,7 @@ class Experiment(Base):
         String,
         nullable=True
     )
-    
+
     pipeline_status = Column(
         String,
         default="uploaded"
@@ -57,5 +57,10 @@ class Experiment(Base):
 
     error_message = Column(
         Text,
+        nullable=True
+    )
+
+    pipeline_result = Column(
+        JSON,
         nullable=True
     )

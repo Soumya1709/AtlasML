@@ -3,44 +3,34 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from backend.database.models import Experiment
+from backend.models.experiment import Experiment
 
 
 def create_experiment(
     db: Session,
     dataset_name: str,
-    dataset_path: str,
+    dataset_path: str
 ):
-
     experiment = Experiment(
         experiment_id=str(uuid4()),
         dataset_name=dataset_name,
         dataset_path=dataset_path,
         status="uploaded",
+        pipeline_status="uploaded",
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
 
     db.add(experiment)
-
     db.commit()
-
     db.refresh(experiment)
 
     return experiment
 
 
-def get_all_experiments(db: Session):
-    return (
-        db.query(Experiment)
-        .order_by(Experiment.created_at.desc())
-        .all()
-    )
-
-
 def get_experiment(
     db: Session,
-    experiment_id: str,
+    experiment_id: str
 ):
     return (
         db.query(Experiment)
@@ -50,17 +40,27 @@ def get_experiment(
         .first()
     )
 
+
+def get_all_experiments(
+    db: Session
+):
+    return db.query(Experiment).all()
+
+
 def update_experiment_status(
     db: Session,
     experiment_id: str,
     status: str,
-    current_agent: str = None,
-    execution_time: float = None,
-    error_message: str = None,
+    current_agent: str | None = None,
+    execution_time: float | None = None,
+    error_message: str | None = None,
+    pipeline_result: dict | None = None,
 ):
     experiment = (
         db.query(Experiment)
-        .filter(Experiment.experiment_id == experiment_id)
+        .filter(
+            Experiment.experiment_id == experiment_id
+        )
         .first()
     )
 
@@ -68,6 +68,8 @@ def update_experiment_status(
         return None
 
     experiment.status = status
+    experiment.pipeline_status = status
+    experiment.updated_at = datetime.utcnow()
 
     if current_agent is not None:
         experiment.current_agent = current_agent
@@ -77,6 +79,9 @@ def update_experiment_status(
 
     if error_message is not None:
         experiment.error_message = error_message
+
+    if pipeline_result is not None:
+        experiment.pipeline_result = pipeline_result
 
     db.commit()
     db.refresh(experiment)
