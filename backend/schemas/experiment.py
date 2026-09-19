@@ -13,5 +13,6 @@ class ExperimentResponse(BaseModel):
     pipeline_status: str = "uploaded"
     execution_time: float | None = None
     error_message: str | None = None
+    pipeline_result: dict | None = None
 
     model_config = ConfigDict(from_attributes=True)

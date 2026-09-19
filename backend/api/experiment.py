@@ -26,6 +26,7 @@ def list_experiments(
 
     return experiments
 
+
 @router.get(
     "/{experiment_id}/status",
 )
@@ -50,6 +51,7 @@ def get_experiment_status(
         "current_agent": experiment.current_agent,
         "execution_time": experiment.execution_time,
         "error_message": experiment.error_message,
+        "pipeline_result": experiment.pipeline_result,
     }
 
 

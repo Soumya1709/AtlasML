@@ -81,11 +81,12 @@ class PipelineManager:
             state.current_agent = "Completed"
 
             update_experiment_status(
-                db=db,
-                experiment_id=state.experiment_id,
-                status="completed",
-                current_agent="Completed",
-                execution_time=execution_time,
+               db=db,
+               experiment_id=state.experiment_id,
+               status="completed",
+               current_agent="Completed",
+               execution_time=execution_time,
+               pipeline_result=state.summary,
             )
 
             logger.info(
