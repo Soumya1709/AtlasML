@@ -6,6 +6,9 @@ from backend.services.experiment_service import (
     get_all_experiments,
     get_experiment,
 )
+from backend.services.agent_execution_service import (
+    get_experiment_agent_executions,
+)
 from backend.schemas.experiment import ExperimentResponse
 
 
@@ -53,6 +56,31 @@ def get_experiment_status(
         "error_message": experiment.error_message,
         "pipeline_result": experiment.pipeline_result,
     }
+    
+@router.get(
+    "/{experiment_id}/agents",
+)
+def get_agent_executions(
+    experiment_id: str,
+    db: Session = Depends(get_db),
+):
+    experiment = get_experiment(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    if experiment is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Experiment not found",
+        )
+
+    executions = get_experiment_agent_executions(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    return executions
 
 
 @router.get(

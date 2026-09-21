@@ -5,30 +5,26 @@ from sqlalchemy.orm import Session
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
 
-from backend.agents.agent_registry import AGENT_REGISTRY
-from backend.pipelines.pipeline_config import PIPELINE_AGENTS
-
 from backend.services.experiment_service import (
     update_experiment_status,
 )
+
+from backend.services.agent_execution_service import (
+    create_agent_execution,
+    complete_agent_execution,
+    fail_agent_execution,
+)
+
+from backend.agents.dataset_agent import DatasetAgent
 
 
 class PipelineManager:
 
     def __init__(self):
 
-        self.agents = []
-
-        for agent_name in PIPELINE_AGENTS:
-
-            agent_class = AGENT_REGISTRY.get(agent_name)
-
-            if agent_class is None:
-                raise ValueError(
-                    f"Agent '{agent_name}' is not registered."
-                )
-
-            self.agents.append(agent_class())
+        self.agents = [
+            DatasetAgent(),
+        ]
 
     def run_pipeline(
         self,
@@ -40,7 +36,7 @@ class PipelineManager:
             "========== PIPELINE STARTED =========="
         )
 
-        start = time.time()
+        pipeline_start = time.time()
 
         try:
 
@@ -48,10 +44,8 @@ class PipelineManager:
                 db=db,
                 experiment_id=state.experiment_id,
                 status="running",
-                current_agent="PipelineManager",
+                current_agent="DatasetAgent",
             )
-
-            state.status = "running"
 
             for agent in self.agents:
 
@@ -63,35 +57,72 @@ class PipelineManager:
 
                 state.current_agent = agent_name
 
-                update_experiment_status(
+                execution = create_agent_execution(
                     db=db,
                     experiment_id=state.experiment_id,
-                    status="running",
-                    current_agent=agent_name,
+                    agent_name=agent_name,
                 )
 
-                state = agent.run(state)
+                agent_start = time.time()
 
-            execution_time = round(
-                time.time() - start,
-                2
-            )
+                try:
 
-            state.status = "completed"
-            state.current_agent = "Completed"
+                    state = agent.run(state)
 
-            update_experiment_status(
-               db=db,
-               experiment_id=state.experiment_id,
-               status="completed",
-               current_agent="Completed",
-               execution_time=execution_time,
-               pipeline_result=state.summary,
+                    agent_execution_time = round(
+                        time.time() - agent_start,
+                        2,
+                    )
+
+                    complete_agent_execution(
+                        db=db,
+                        execution_id=execution.execution_id,
+                        execution_time=agent_execution_time,
+                    )
+
+                    logger.info(
+                        f"{agent_name} completed in "
+                        f"{agent_execution_time} seconds"
+                    )
+
+                except Exception as agent_error:
+
+                    agent_execution_time = round(
+                        time.time() - agent_start,
+                        2,
+                    )
+
+                    fail_agent_execution(
+                        db=db,
+                        execution_id=execution.execution_id,
+                        error_message=str(agent_error),
+                        execution_time=agent_execution_time,
+                    )
+
+                    logger.exception(
+                        f"{agent_name} failed"
+                    )
+
+                    raise
+
+
+            pipeline_execution_time = round(
+                time.time() - pipeline_start,
+                2,
             )
 
             logger.info(
                 f"Pipeline completed in "
-                f"{execution_time} seconds"
+                f"{pipeline_execution_time} seconds"
+            )
+
+            update_experiment_status(
+                db=db,
+                experiment_id=state.experiment_id,
+                status="completed",
+                current_agent="Completed",
+                execution_time=pipeline_execution_time,
+                pipeline_result=state.summary,
             )
 
             return state
@@ -99,10 +130,8 @@ class PipelineManager:
         except Exception as e:
 
             logger.exception(
-                "Pipeline execution failed"
+                "Pipeline Failed"
             )
-
-            state.status = "failed"
 
             update_experiment_status(
                 db=db,
