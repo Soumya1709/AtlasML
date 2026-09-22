@@ -10,12 +10,14 @@ def create_agent_execution(
     db: Session,
     experiment_id: str,
     agent_name: str,
+    attempt_number: int = 1,
 ):
     execution = AgentExecution(
         execution_id=str(uuid4()),
         experiment_id=experiment_id,
         agent_name=agent_name,
         status="running",
+        attempt_number=attempt_number,
         started_at=datetime.utcnow(),
     )
 
@@ -24,6 +26,29 @@ def create_agent_execution(
     db.refresh(execution)
 
     return execution
+
+
+def get_next_attempt_number(
+    db: Session,
+    experiment_id: str,
+    agent_name: str,
+):
+    latest_execution = (
+        db.query(AgentExecution)
+        .filter(
+            AgentExecution.experiment_id == experiment_id,
+            AgentExecution.agent_name == agent_name,
+        )
+        .order_by(
+            AgentExecution.attempt_number.desc()
+        )
+        .first()
+    )
+
+    if latest_execution is None:
+        return 1
+
+    return latest_execution.attempt_number + 1
 
 
 def complete_agent_execution(
@@ -80,6 +105,19 @@ def fail_agent_execution(
     db.refresh(execution)
 
     return execution
+
+
+def get_agent_execution(
+    db: Session,
+    execution_id: str,
+):
+    return (
+        db.query(AgentExecution)
+        .filter(
+            AgentExecution.execution_id == execution_id
+        )
+        .first()
+    )
 
 
 def get_experiment_agent_executions(

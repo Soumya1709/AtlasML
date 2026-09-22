@@ -13,6 +13,7 @@ from backend.services.agent_execution_service import (
     create_agent_execution,
     complete_agent_execution,
     fail_agent_execution,
+    get_next_attempt_number,
 )
 
 from backend.agents.dataset_agent import DatasetAgent
@@ -57,10 +58,17 @@ class PipelineManager:
 
                 state.current_agent = agent_name
 
+                attempt_number = get_next_attempt_number(
+                    db=db,
+                    experiment_id=state.experiment_id,
+                    agent_name=agent_name,
+                )
+
                 execution = create_agent_execution(
                     db=db,
                     experiment_id=state.experiment_id,
                     agent_name=agent_name,
+                    attempt_number=attempt_number,
                 )
 
                 agent_start = time.time()
@@ -104,7 +112,6 @@ class PipelineManager:
                     )
 
                     raise
-
 
             pipeline_execution_time = round(
                 time.time() - pipeline_start,

@@ -1,5 +1,12 @@
-from sqlalchemy import Column, String, DateTime, Float, Text
-from datetime import datetime
+from sqlalchemy import (
+    Column,
+    String,
+    DateTime,
+    Float,
+    Text,
+    Integer,
+)
+
 from backend.database.database import Base
 
 
@@ -27,6 +34,12 @@ class AgentExecution(Base):
     status = Column(
         String,
         default="queued"
+    )
+
+    attempt_number = Column(
+        Integer,
+        default=1,
+        nullable=False
     )
 
     started_at = Column(
