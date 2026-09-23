@@ -70,6 +70,7 @@ def complete_agent_execution(
     execution.status = "completed"
     execution.completed_at = datetime.utcnow()
     execution.execution_time = execution_time
+    execution.error_message = None
 
     db.commit()
     db.refresh(execution)

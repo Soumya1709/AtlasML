@@ -1,24 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException,BackgroundTasks
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    BackgroundTasks,
+)
+
 from sqlalchemy.orm import Session
 
 from backend.database.database import get_db
+
 from backend.services.experiment_service import (
     get_all_experiments,
     get_experiment,
 )
+
 from backend.services.agent_execution_service import (
-    get_experiment_agent_executions,
     get_agent_execution,
+    get_experiment_agent_executions,
 )
+
 from backend.services.pipeline_service import (
     retry_agent_background,
 )
-from backend.models.pipeline_state import PipelineState
-from backend.schemas.experiment import ExperimentResponse
+
 from backend.services.csv_services import (
     read_csv,
     get_dataset_summary,
 )
+
+from backend.schemas.experiment import ExperimentResponse
+
+from backend.models.pipeline_state import PipelineState
 
 
 router = APIRouter(
@@ -65,7 +77,8 @@ def get_experiment_status(
         "error_message": experiment.error_message,
         "pipeline_result": experiment.pipeline_result,
     }
-    
+
+
 @router.get(
     "/{experiment_id}/agents",
 )
@@ -91,8 +104,9 @@ def get_agent_executions(
 
     return executions
 
+
 @router.post(
-    "/{experiment_id}/agents/{execution_id}/retry"
+    "/{experiment_id}/agents/{execution_id}/retry",
 )
 def retry_agent(
     experiment_id: str,
@@ -100,10 +114,6 @@ def retry_agent(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    # ---------------------------------------------------------
-    # Check experiment
-    # ---------------------------------------------------------
-
     experiment = get_experiment(
         db=db,
         experiment_id=experiment_id,
@@ -114,10 +124,6 @@ def retry_agent(
             status_code=404,
             detail="Experiment not found",
         )
-
-    # ---------------------------------------------------------
-    # Check execution
-    # ---------------------------------------------------------
 
     execution = get_agent_execution(
         db=db,
@@ -130,32 +136,17 @@ def retry_agent(
             detail="Agent execution not found",
         )
 
-    # ---------------------------------------------------------
-    # Make sure execution belongs to experiment
-    # ---------------------------------------------------------
-
     if execution.experiment_id != experiment_id:
         raise HTTPException(
             status_code=400,
             detail="Agent execution does not belong to this experiment.",
         )
 
-    # ---------------------------------------------------------
-    # Only failed executions can be retried
-    # ---------------------------------------------------------
-
     if execution.status != "failed":
         raise HTTPException(
             status_code=400,
-            detail=(
-                "Only failed agent executions "
-                "can be retried."
-            ),
+            detail="Only failed agent executions can be retried.",
         )
-
-    # ---------------------------------------------------------
-    # Recreate initial pipeline state
-    # ---------------------------------------------------------
 
     try:
 
@@ -179,14 +170,8 @@ def retry_agent(
 
         raise HTTPException(
             status_code=500,
-            detail=(
-                f"Unable to prepare agent retry: {str(e)}"
-            ),
+            detail=f"Unable to prepare agent retry: {str(e)}",
         )
-
-    # ---------------------------------------------------------
-    # Start retry in background
-    # ---------------------------------------------------------
 
     background_tasks.add_task(
         retry_agent_background,

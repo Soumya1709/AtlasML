@@ -54,7 +54,6 @@ def retry_agent_background(
 
         manager = PipelineManager()
 
-        # Find the requested agent
         agent = next(
             (
                 current_agent
