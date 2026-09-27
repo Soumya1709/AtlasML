@@ -23,6 +23,7 @@ class DatasetAgent(BaseAgent):
         logger.info("========== DATASET AGENT ==========")
 
         dataframe = pd.read_csv(state.dataset_path)
+        state.cleaned_dataframe = dataframe.copy()
 
         identifier_columns = detect_identifier_columns(dataframe)
 

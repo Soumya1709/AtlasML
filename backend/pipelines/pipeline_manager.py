@@ -17,6 +17,7 @@ from backend.services.agent_execution_service import (
 )
 
 from backend.agents.dataset_agent import DatasetAgent
+from backend.agents.feature_agent import FeatureAgent
 
 
 class PipelineManager:
@@ -25,6 +26,7 @@ class PipelineManager:
 
         self.agents = [
             DatasetAgent(),
+            FeatureAgent(),
         ]
 
     def run_pipeline(

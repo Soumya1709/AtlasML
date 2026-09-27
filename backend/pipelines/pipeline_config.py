@@ -1,4 +1,5 @@
 PIPELINE_AGENTS = [
-    "DatasetAgent",
     "CleaningAgent",
+    "DatasetAgent",
+    "FeatureAgent",
 ]
