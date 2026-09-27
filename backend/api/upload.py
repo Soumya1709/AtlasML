@@ -1,13 +1,28 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File,
+    HTTPException,
+    Depends,
+    BackgroundTasks,
+)
+
 from sqlalchemy.orm import Session
 
 from backend.services.csv_services import (
     read_csv,
     get_dataset_summary,
 )
+
 from backend.services.file_service import save_uploaded_file
-from backend.services.pipeline_service import execute_pipeline
-from backend.services.experiment_service import create_experiment
+
+from backend.services.pipeline_service import (
+    execute_pipeline_background,
+)
+
+from backend.services.experiment_service import (
+    create_experiment,
+)
 
 from backend.database.database import get_db
 
@@ -23,7 +38,9 @@ from backend.schemas.dataset import (
 )
 
 from backend.logger import logger
+
 from backend.models.pipeline_state import PipelineState
+
 
 router = APIRouter()
 
@@ -36,20 +53,23 @@ router = APIRouter()
     description="Upload a CSV dataset and generate a complete dataset profile.",
 )
 async def upload_dataset(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    
+
     if not any(
         file.filename.lower().endswith(ext)
         for ext in ALLOWED_EXTENSIONS
     ):
         raise HTTPException(
             status_code=400,
-            detail=f"Only {', '.join(ALLOWED_EXTENSIONS)} files are allowed.",
+            detail=(
+                f"Only {', '.join(ALLOWED_EXTENSIONS)} "
+                "files are allowed."
+            ),
         )
 
-   
     contents = await file.read()
 
     if len(contents) == 0:
@@ -58,37 +78,44 @@ async def upload_dataset(
             detail="Uploaded file is empty.",
         )
 
-    
     await file.seek(0)
 
-    
     file_size_mb = len(contents) / (1024 * 1024)
 
     if file_size_mb > MAX_FILE_SIZE_MB:
         raise HTTPException(
             status_code=400,
-            detail=f"Maximum allowed file size is {MAX_FILE_SIZE_MB} MB.",
+            detail=(
+                f"Maximum allowed file size is "
+                f"{MAX_FILE_SIZE_MB} MB."
+            ),
         )
 
-    logger.info(f"Received upload request: {file.filename}")
+    logger.info(
+        f"Received upload request: {file.filename}"
+    )
 
     try:
-        
+
         saved_path = save_uploaded_file(
             file,
             UPLOAD_FOLDER,
         )
 
-        logger.info(f"Dataset saved at: {saved_path}")
+        logger.info(
+            f"Dataset saved at: {saved_path}"
+        )
 
-        
         dataframe = read_csv(saved_path)
 
-        summary = get_dataset_summary(dataframe)
+        summary = get_dataset_summary(
+            dataframe
+        )
 
-        logger.info("Dataset summary generated successfully.")
+        logger.info(
+            "Dataset summary generated successfully."
+        )
 
-        
         experiment = create_experiment(
             db=db,
             dataset_name=file.filename,
@@ -96,39 +123,47 @@ async def upload_dataset(
         )
 
         logger.info(
-            f"Experiment created successfully: {experiment.experiment_id}"
+            f"Experiment created successfully: "
+            f"{experiment.experiment_id}"
         )
 
-        
         state = PipelineState(
             experiment_id=experiment.experiment_id,
             dataset_path=saved_path,
             summary=summary,
-            current_agent="dataset_agent",
-            status="running",
+            current_agent="DatasetAgent",
+            status="queued",
         )
 
-        
-        updated_state = execute_pipeline(
-            state=state,
-            db=db,
+        background_tasks.add_task(
+            execute_pipeline_background,
+            state,
         )
 
         logger.info(
-            f"Pipeline completed with status: {updated_state.status}"
+            f"Pipeline queued in background for experiment: "
+            f"{experiment.experiment_id}"
         )
 
-       
+
         return UploadResponse(
             original_filename=file.filename,
             saved_path=saved_path,
-            summary=DatasetSummary(**updated_state.summary),
+            summary=DatasetSummary(
+                **summary
+            ),
         )
 
     except Exception as e:
-        logger.exception("Dataset upload failed")
+
+        logger.exception(
+            "Dataset upload failed"
+        )
 
         raise HTTPException(
             status_code=500,
-            detail=f"Unable to process uploaded CSV. Error: {str(e)}",
+            detail=(
+                "Unable to process uploaded CSV. "
+                f"Error: {str(e)}"
+            ),
         )
