@@ -4,6 +4,8 @@ from backend.logger import logger
 from backend.services.feature_engineering import (
     extract_date_features,
     build_feature_pipeline,
+    select_features,
+    create_interaction_features,
 )
 
 
@@ -46,6 +48,7 @@ class FeatureAgent:
             "target_column",
         )
 
+        # Remove identifier and constant columns
         columns_to_remove = []
 
         for column in identifier_columns:
@@ -69,6 +72,7 @@ class FeatureAgent:
             f"Removed columns: {columns_to_remove}"
         )
 
+        # Extract date features
         df, created_date_features = extract_date_features(
             df,
             datetime_columns,
@@ -78,31 +82,77 @@ class FeatureAgent:
             f"Created date features: {created_date_features}"
         )
 
-        feature_df, feature_names, preprocessor = build_feature_pipeline(
-            df,
-            target_column,
+        # Build preprocessing pipeline
+        feature_df, feature_names, preprocessor, target_values = (
+            build_feature_pipeline(
+                df,
+                target_column,
+            )
         )
 
         logger.info(
-            f"Generated {len(feature_names)} features"
+            f"Generated {len(feature_names)} base features"
+        )
+
+        # Identify numerical features
+        numerical_features = [
+            column
+            for column in feature_names
+            if column.startswith("numerical__")
+        ]
+
+        # Create interaction features
+        feature_df, interaction_features = (
+            create_interaction_features(
+                feature_df,
+                numerical_features,
+            )
         )
 
         logger.info(
-            f"Generated features: {feature_names}"
+            f"Created interaction features: {interaction_features}"
         )
 
+        # Feature selection
+        feature_df, selected_features, removed_features = (
+            select_features(
+                feature_df
+            )
+        )
+
+        logger.info(
+            f"Selected {len(selected_features)} features"
+        )
+
+        logger.info(
+            f"Features removed during selection: {removed_features}"
+        )
+
+        # Preserve target separately
+        if target_column:
+            logger.info(
+                f"Target column preserved separately: {target_column}"
+            )
+
+        # Update pipeline state
         state.feature_dataframe = feature_df
         state.cleaned_dataframe = feature_df
 
-        state.selected_features = feature_names
+        state.selected_features = selected_features
 
         state.feature_preprocessor = preprocessor
+        state.target_values = target_values
 
+        # Store feature engineering metadata
         state.feature_metadata = {
             "removed_columns": columns_to_remove,
             "date_features_created": created_date_features,
-            "generated_feature_count": len(feature_names),
-            "generated_features": feature_names,
+            "generated_feature_count": len(feature_df.columns),
+            "generated_features": feature_df.columns.tolist(),
+            "interaction_features": interaction_features,
+            "selected_feature_count": len(selected_features),
+            "selected_features": selected_features,
+            "selection_removed_features": removed_features,
             "target_column": target_column,
         }
 

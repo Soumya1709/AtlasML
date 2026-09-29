@@ -19,6 +19,7 @@ class PipelineState(BaseModel):
     feature_dataframe: Any | None = None
     feature_metadata: dict[str, Any] | None = None
     feature_preprocessor: Any | None = None
+    target_values: Any | None = None
 
     trained_model: Any | None = None
     metrics: dict[str, Any] | None = None
