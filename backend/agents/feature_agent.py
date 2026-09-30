@@ -55,9 +55,6 @@ class FeatureAgent:
             "target_column"
         )
 
-        # --------------------------------------------------
-        # 1. REMOVE IDENTIFIER AND CONSTANT COLUMNS
-        # --------------------------------------------------
 
         columns_to_remove = []
 
@@ -85,10 +82,6 @@ class FeatureAgent:
             f"Removed columns: {columns_to_remove}"
         )
 
-        # --------------------------------------------------
-        # 2. DATE FEATURE EXTRACTION
-        # --------------------------------------------------
-
         df, created_date_features = extract_date_features(
             df,
             datetime_columns
@@ -97,10 +90,6 @@ class FeatureAgent:
         logger.info(
             f"Created date features: {created_date_features}"
         )
-
-        # --------------------------------------------------
-        # 3. BUILD FEATURE PIPELINE
-        # --------------------------------------------------
 
         (
             feature_df,
@@ -115,10 +104,6 @@ class FeatureAgent:
         logger.info(
             f"Generated {len(feature_names)} base features"
         )
-
-        # --------------------------------------------------
-        # 4. CREATE INTERACTION FEATURES
-        # --------------------------------------------------
 
         numerical_features = [
             column
@@ -139,10 +124,6 @@ class FeatureAgent:
             f"Created interaction features: {interaction_features}"
         )
 
-        # --------------------------------------------------
-        # 5. FEATURE SELECTION
-        # --------------------------------------------------
-
         feature_df, selected_features, removed_features = (
             select_features(feature_df)
         )
@@ -155,10 +136,6 @@ class FeatureAgent:
             f"Features removed during selection: {removed_features}"
         )
 
-        # --------------------------------------------------
-        # 6. DROP SUGGESTIONS
-        # --------------------------------------------------
-
         drop_suggestions = suggest_drop(
             df=df,
             identifier_columns=identifier_columns,
@@ -169,10 +146,6 @@ class FeatureAgent:
         logger.info(
             f"Drop suggestions: {drop_suggestions}"
         )
-
-        # --------------------------------------------------
-        # 7. CREATE SUGGESTIONS
-        # --------------------------------------------------
         
     
 
@@ -187,10 +160,6 @@ class FeatureAgent:
             f"Create suggestions: {create_suggestions}"
         )
 
-        # --------------------------------------------------
-        # 8. SAVE STATE
-        # --------------------------------------------------
-
         state.feature_dataframe = feature_df
 
         state.cleaned_dataframe = feature_df
@@ -200,10 +169,6 @@ class FeatureAgent:
         state.feature_preprocessor = preprocessor
 
         state.target_values = target_values
-
-        # --------------------------------------------------
-        # 9. FEATURE METADATA
-        # --------------------------------------------------
 
         state.feature_metadata = {
 
@@ -237,10 +202,6 @@ class FeatureAgent:
 
             "target_column": target_column,
         }
-
-        # --------------------------------------------------
-        # 10. COMPLETE
-        # --------------------------------------------------
 
         state.executed_agents.append(
             "FeatureAgent"
