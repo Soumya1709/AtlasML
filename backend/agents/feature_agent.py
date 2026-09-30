@@ -6,6 +6,8 @@ from backend.services.feature_engineering import (
     build_feature_pipeline,
     select_features,
     create_interaction_features,
+    suggest_drop,
+    suggest_create,
 )
 
 
@@ -31,32 +33,43 @@ class FeatureAgent:
 
         identifier_columns = summary.get(
             "identifier_columns",
-            [],
+            []
         )
 
         constant_columns = summary.get(
             "constant_columns",
-            [],
+            []
         )
 
         datetime_columns = summary.get(
             "datetime_columns",
-            [],
+            []
+        )
+
+        high_cardinality_columns = summary.get(
+            "high_cardinality_columns",
+            []
         )
 
         target_column = summary.get(
-            "target_column",
+            "target_column"
         )
 
-        # Remove identifier and constant columns
+        # --------------------------------------------------
+        # 1. REMOVE IDENTIFIER AND CONSTANT COLUMNS
+        # --------------------------------------------------
+
         columns_to_remove = []
 
         for column in identifier_columns:
+
             if column in df.columns:
                 columns_to_remove.append(column)
 
         for column in constant_columns:
+
             if column in df.columns:
+
                 if column != target_column:
                     columns_to_remove.append(column)
 
@@ -65,47 +78,60 @@ class FeatureAgent:
         if columns_to_remove:
             df.drop(
                 columns=columns_to_remove,
-                inplace=True,
+                inplace=True
             )
 
         logger.info(
             f"Removed columns: {columns_to_remove}"
         )
 
-        # Extract date features
+        # --------------------------------------------------
+        # 2. DATE FEATURE EXTRACTION
+        # --------------------------------------------------
+
         df, created_date_features = extract_date_features(
             df,
-            datetime_columns,
+            datetime_columns
         )
 
         logger.info(
             f"Created date features: {created_date_features}"
         )
 
-        # Build preprocessing pipeline
-        feature_df, feature_names, preprocessor, target_values = (
-            build_feature_pipeline(
-                df,
-                target_column,
-            )
+        # --------------------------------------------------
+        # 3. BUILD FEATURE PIPELINE
+        # --------------------------------------------------
+
+        (
+            feature_df,
+            feature_names,
+            preprocessor,
+            target_values
+        ) = build_feature_pipeline(
+            df,
+            target_column
         )
 
         logger.info(
             f"Generated {len(feature_names)} base features"
         )
 
-        # Identify numerical features
+        # --------------------------------------------------
+        # 4. CREATE INTERACTION FEATURES
+        # --------------------------------------------------
+
         numerical_features = [
             column
             for column in feature_names
             if column.startswith("numerical__")
         ]
+        
+        
 
-        # Create interaction features
         feature_df, interaction_features = (
             create_interaction_features(
                 feature_df,
-                numerical_features,
+                numerical_features
             )
         )
 
@@ -113,11 +139,12 @@ class FeatureAgent:
             f"Created interaction features: {interaction_features}"
         )
 
-        # Feature selection
+        # --------------------------------------------------
+        # 5. FEATURE SELECTION
+        # --------------------------------------------------
+
         feature_df, selected_features, removed_features = (
-            select_features(
-                feature_df
-            )
+            select_features(feature_df)
         )
 
         logger.info(
@@ -128,33 +155,92 @@ class FeatureAgent:
             f"Features removed during selection: {removed_features}"
         )
 
-        # Preserve target separately
-        if target_column:
-            logger.info(
-                f"Target column preserved separately: {target_column}"
-            )
+        # --------------------------------------------------
+        # 6. DROP SUGGESTIONS
+        # --------------------------------------------------
 
-        # Update pipeline state
+        drop_suggestions = suggest_drop(
+            df=df,
+            identifier_columns=identifier_columns,
+            constant_columns=constant_columns,
+            high_cardinality_columns=high_cardinality_columns,
+        )
+
+        logger.info(
+            f"Drop suggestions: {drop_suggestions}"
+        )
+
+        # --------------------------------------------------
+        # 7. CREATE SUGGESTIONS
+        # --------------------------------------------------
+        
+    
+
+        create_suggestions = suggest_create(
+            df=feature_df,
+            numerical_columns=numerical_features,
+            existing_features=interaction_features,
+            max_suggestions=10,
+        )
+
+        logger.info(
+            f"Create suggestions: {create_suggestions}"
+        )
+
+        # --------------------------------------------------
+        # 8. SAVE STATE
+        # --------------------------------------------------
+
         state.feature_dataframe = feature_df
+
         state.cleaned_dataframe = feature_df
 
         state.selected_features = selected_features
 
         state.feature_preprocessor = preprocessor
+
         state.target_values = target_values
 
-        # Store feature engineering metadata
+        # --------------------------------------------------
+        # 9. FEATURE METADATA
+        # --------------------------------------------------
+
         state.feature_metadata = {
+
             "removed_columns": columns_to_remove,
+
             "date_features_created": created_date_features,
-            "generated_feature_count": len(feature_df.columns),
-            "generated_features": feature_df.columns.tolist(),
+
+            "generated_feature_count": len(
+                feature_df.columns
+            ),
+
+            "generated_features": (
+                feature_df.columns.tolist()
+            ),
+
             "interaction_features": interaction_features,
-            "selected_feature_count": len(selected_features),
+
+            "selected_feature_count": len(
+                selected_features
+            ),
+
             "selected_features": selected_features,
-            "selection_removed_features": removed_features,
+
+            "selection_removed_features": (
+                removed_features
+            ),
+
+            "drop_suggestions": drop_suggestions,
+
+            "create_suggestions": create_suggestions,
+
             "target_column": target_column,
         }
+
+        # --------------------------------------------------
+        # 10. COMPLETE
+        # --------------------------------------------------
 
         state.executed_agents.append(
             "FeatureAgent"
@@ -162,6 +248,8 @@ class FeatureAgent:
 
         state.status = "completed"
 
-        logger.info("Feature Agent Completed")
+        logger.info(
+            "Feature Agent Completed"
+        )
 
         return state

@@ -323,3 +323,106 @@ def create_interaction_features(
         df,
         created_features,
     )
+    
+def suggest_drop(
+    df,
+    identifier_columns=None,
+    constant_columns=None,
+    high_cardinality_columns=None,
+):
+    """
+    Suggest columns that may be dropped based on dataset characteristics.
+    Does not actually drop any columns.
+    """
+
+    identifier_columns = identifier_columns or []
+    constant_columns = constant_columns or []
+    high_cardinality_columns = high_cardinality_columns or []
+
+    suggestions = []
+
+    for column in identifier_columns:
+        if column in df.columns:
+            suggestions.append({
+                "feature": column,
+                "reason": "Identifier column with little predictive value",
+                "type": "drop",
+            })
+
+    for column in constant_columns:
+        if column in df.columns:
+            suggestions.append({
+                "feature": column,
+                "reason": "Constant column with no variance",
+                "type": "drop",
+            })
+
+    for column in high_cardinality_columns:
+        if column in df.columns:
+            suggestions.append({
+                "feature": column,
+                "reason": "High-cardinality column may introduce noise or increase dimensionality",
+                "type": "drop",
+            })
+
+    return suggestions
+
+
+def suggest_create(
+    df,
+    numerical_columns=None,
+    existing_features=None,
+    max_suggestions=10,
+):
+    """
+    Suggest potentially useful interaction features
+    between original numerical features.
+
+    Existing interaction features are excluded.
+    """
+
+    numerical_columns = numerical_columns or []
+    existing_features = existing_features or []
+
+    numerical_columns = [
+        column
+        for column in numerical_columns
+        if column in df.columns
+        and "_x_" not in column
+    ]
+
+    suggestions = []
+
+    count = 0
+
+    for i in range(len(numerical_columns)):
+
+        for j in range(i + 1, len(numerical_columns)):
+
+            if count >= max_suggestions:
+                return suggestions
+
+            first = numerical_columns[i]
+            second = numerical_columns[j]
+
+            interaction_name = f"{first}_x_{second}"
+
+            if interaction_name in existing_features:
+                continue
+
+            suggestions.append({
+                "feature": interaction_name,
+                "reason": (
+                    f"Potential interaction between "
+                    f"{first} and {second}"
+                ),
+                "type": "create",
+                "source_features": [
+                    first,
+                    second
+                ],
+            })
+
+            count += 1
+
+    return suggestions
