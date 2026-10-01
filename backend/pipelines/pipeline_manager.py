@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,13 @@ from backend.services.agent_execution_service import (
 
 from backend.agents.dataset_agent import DatasetAgent
 from backend.agents.feature_agent import FeatureAgent
+
+from backend.services.mlflow_service import (
+    start_mlflow_run,
+    log_pipeline_info,
+    log_metric,
+    end_mlflow_run,
+)
 
 
 class PipelineManager:
@@ -40,6 +48,22 @@ class PipelineManager:
         )
 
         pipeline_start = time.time()
+
+        dataset_name = Path(
+            state.dataset_path
+        ).name
+
+        start_mlflow_run(
+            experiment_name="AtlasML",
+            run_name=state.experiment_id,
+        )
+
+        log_pipeline_info(
+            experiment_id=state.experiment_id,
+            dataset_name=dataset_name,
+            rows=state.summary.get("rows", 0),
+            columns=state.summary.get("columns", 0),
+        )
 
         try:
 
@@ -120,6 +144,11 @@ class PipelineManager:
                 2,
             )
 
+            log_metric(
+                "pipeline_execution_time",
+                pipeline_execution_time,
+            )
+
             logger.info(
                 f"Pipeline completed in "
                 f"{pipeline_execution_time} seconds"
@@ -133,6 +162,8 @@ class PipelineManager:
                 execution_time=pipeline_execution_time,
                 pipeline_result=state.summary,
             )
+
+            end_mlflow_run()
 
             return state
 
@@ -149,5 +180,7 @@ class PipelineManager:
                 current_agent=state.current_agent,
                 error_message=str(e),
             )
+
+            end_mlflow_run()
 
             raise
