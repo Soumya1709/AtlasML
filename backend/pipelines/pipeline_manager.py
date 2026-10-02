@@ -113,6 +113,11 @@ class PipelineManager:
                         execution_id=execution.execution_id,
                         execution_time=agent_execution_time,
                     )
+                    
+                    log_metric(
+                      f"{agent_name}_execution_time",
+                      agent_execution_time,
+                    )
 
                     logger.info(
                         f"{agent_name} completed in "
