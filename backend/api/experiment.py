@@ -31,6 +31,10 @@ from backend.services.csv_services import (
 from backend.schemas.experiment import ExperimentResponse
 
 from backend.models.pipeline_state import PipelineState
+from backend.services.artifact_service import (
+    get_artifact,
+    get_experiment_artifacts,
+)
 
 
 router = APIRouter(
@@ -185,6 +189,44 @@ def retry_agent(
         "execution_id": execution_id,
         "agent_name": execution.agent_name,
     }
+    
+@router.get("/{experiment_id}/artifacts")
+def get_artifacts(
+    experiment_id: str,
+    db: Session = Depends(get_db),
+):
+    artifacts = get_experiment_artifacts(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    return artifacts
+
+
+@router.get("/{experiment_id}/artifacts/{artifact_id}")
+def get_artifact_details(
+    experiment_id: str,
+    artifact_id: str,
+    db: Session = Depends(get_db),
+):
+    artifact = get_artifact(
+        db=db,
+        artifact_id=artifact_id,
+    )
+
+    if artifact is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Artifact not found",
+        )
+
+    if artifact.experiment_id != experiment_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Artifact not found for this experiment",
+        )
+
+    return artifact
 
 
 @router.get(

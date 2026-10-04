@@ -16,6 +16,7 @@ from backend.services.agent_execution_service import (
     fail_agent_execution,
     get_next_attempt_number,
 )
+from backend.services.artifact_service import save_json_artifact
 
 from backend.agents.dataset_agent import DatasetAgent
 from backend.agents.feature_agent import FeatureAgent
@@ -167,6 +168,14 @@ class PipelineManager:
                 current_agent="Completed",
                 execution_time=pipeline_execution_time,
                 pipeline_result=state.summary,
+            )
+            
+            save_json_artifact(
+               db=db,
+               experiment_id=state.experiment_id,
+               artifact_name="pipeline_summary.json",
+               artifact_type="metrics",
+               data=state.summary,
             )
 
             end_mlflow_run()
