@@ -8,6 +8,8 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from backend.database.database import get_db
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 from backend.services.experiment_service import (
     get_all_experiments,
@@ -227,6 +229,43 @@ def get_artifact_details(
         )
 
     return artifact
+
+@router.get("/{experiment_id}/artifacts/{artifact_id}/download")
+def download_artifact(
+    experiment_id: str,
+    artifact_id: str,
+    db: Session = Depends(get_db),
+):
+    artifact = get_artifact(
+        db=db,
+        artifact_id=artifact_id,
+    )
+
+    if artifact is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Artifact not found",
+        )
+
+    if artifact.experiment_id != experiment_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Artifact not found for this experiment",
+        )
+
+    file_path = Path(artifact.file_path)
+
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Artifact file not found",
+        )
+
+    return FileResponse(
+        path=file_path,
+        filename=artifact.artifact_name,
+        media_type="application/octet-stream",
+    )
 
 
 @router.get(
