@@ -20,12 +20,12 @@ from backend.services.artifact_service import save_json_artifact
 
 from backend.agents.dataset_agent import DatasetAgent
 from backend.agents.feature_agent import FeatureAgent
-
 from backend.services.mlflow_service import (
     start_mlflow_run,
     log_pipeline_info,
     log_metric,
     log_agent_metadata,
+    log_artifact,
     end_mlflow_run,
 )
 
@@ -170,13 +170,15 @@ class PipelineManager:
                 pipeline_result=state.summary,
             )
             
-            save_json_artifact(
-               db=db,
-               experiment_id=state.experiment_id,
-               artifact_name="pipeline_summary.json",
-               artifact_type="metrics",
-               data=state.summary,
-            )
+            artifact = save_json_artifact(
+              db=db,
+              experiment_id=state.experiment_id,
+              artifact_name="pipeline_summary.json",
+              artifact_type="metrics",
+              data=state.summary,
+             )
+
+            log_artifact(artifact.file_path)
 
             end_mlflow_run()
 

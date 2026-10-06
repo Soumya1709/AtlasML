@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from backend.database.database import get_db
 from fastapi.responses import FileResponse
 from pathlib import Path
+from backend.schemas.artifact import ArtifactResponse
 
 from backend.services.experiment_service import (
     get_all_experiments,
@@ -192,7 +193,10 @@ def retry_agent(
         "agent_name": execution.agent_name,
     }
     
-@router.get("/{experiment_id}/artifacts")
+@router.get(
+    "/{experiment_id}/artifacts",
+    response_model=list[ArtifactResponse],
+)
 def get_artifacts(
     experiment_id: str,
     db: Session = Depends(get_db),
@@ -205,7 +209,10 @@ def get_artifacts(
     return artifacts
 
 
-@router.get("/{experiment_id}/artifacts/{artifact_id}")
+@router.get(
+    "/{experiment_id}/artifacts/{artifact_id}",
+    response_model=ArtifactResponse,
+)
 def get_artifact_details(
     experiment_id: str,
     artifact_id: str,

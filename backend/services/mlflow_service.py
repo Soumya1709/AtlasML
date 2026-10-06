@@ -59,6 +59,9 @@ def log_agent_metadata(agent_name: str, metadata: dict):
                 f"{agent_name}_{key}",
                 str(value),
             )
+            
+def log_artifact(file_path: str):
+    mlflow.log_artifact(file_path)
 
 
 def end_mlflow_run():
