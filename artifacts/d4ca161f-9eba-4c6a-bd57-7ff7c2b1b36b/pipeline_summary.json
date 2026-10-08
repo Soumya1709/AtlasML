@@ -1,0 +1,121 @@
+{
+    "rows": 1000,
+    "columns": 8,
+    "column_names": [
+        "gender",
+        "race/ethnicity",
+        "parental level of education",
+        "lunch",
+        "test preparation course",
+        "math score",
+        "reading score",
+        "writing score"
+    ],
+    "identifier_columns": [],
+    "target_column": "math score",
+    "data_types": {
+        "gender": "object",
+        "race/ethnicity": "object",
+        "parental level of education": "object",
+        "lunch": "object",
+        "test preparation course": "object",
+        "math score": "int64",
+        "reading score": "int64",
+        "writing score": "int64"
+    },
+    "feature_summary": {
+        "numerical": [
+            "math score",
+            "reading score",
+            "writing score"
+        ],
+        "categorical": [
+            "gender",
+            "race/ethnicity",
+            "parental level of education",
+            "lunch",
+            "test preparation course"
+        ],
+        "boolean_like": [
+            "gender",
+            "lunch",
+            "test preparation course"
+        ]
+    },
+    "missing_values": {
+        "gender": 0,
+        "race/ethnicity": 0,
+        "parental level of education": 0,
+        "lunch": 0,
+        "test preparation course": 0,
+        "math score": 0,
+        "reading score": 0,
+        "writing score": 0
+    },
+    "preview": [
+        {
+            "gender": "female",
+            "race/ethnicity": "group B",
+            "parental level of education": "bachelor's degree",
+            "lunch": "standard",
+            "test preparation course": "none",
+            "math score": 72,
+            "reading score": 72,
+            "writing score": 74
+        },
+        {
+            "gender": "female",
+            "race/ethnicity": "group C",
+            "parental level of education": "some college",
+            "lunch": "standard",
+            "test preparation course": "completed",
+            "math score": 69,
+            "reading score": 90,
+            "writing score": 88
+        },
+        {
+            "gender": "female",
+            "race/ethnicity": "group B",
+            "parental level of education": "master's degree",
+            "lunch": "standard",
+            "test preparation course": "none",
+            "math score": 90,
+            "reading score": 95,
+            "writing score": 93
+        },
+        {
+            "gender": "male",
+            "race/ethnicity": "group A",
+            "parental level of education": "associate's degree",
+            "lunch": "free/reduced",
+            "test preparation course": "none",
+            "math score": 47,
+            "reading score": 57,
+            "writing score": 44
+        },
+        {
+            "gender": "male",
+            "race/ethnicity": "group C",
+            "parental level of education": "some college",
+            "lunch": "standard",
+            "test preparation course": "none",
+            "math score": 76,
+            "reading score": 78,
+            "writing score": 75
+        }
+    ],
+    "dataset_quality": {
+        "duplicate_rows": 0,
+        "total_missing_values": 0,
+        "missing_percentage": 0.0,
+        "memory_usage_mb": 0.3
+    },
+    "problem_type": "Regression",
+    "datetime_columns": [],
+    "text_columns": [],
+    "constant_columns": [],
+    "high_cardinality_columns": [],
+    "dataset_problems": [
+        "No major dataset problems detected."
+    ]
+}

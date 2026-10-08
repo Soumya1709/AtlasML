@@ -15,8 +15,12 @@ from backend.services.agent_execution_service import (
     complete_agent_execution,
     fail_agent_execution,
     get_next_attempt_number,
+    get_experiment_agent_executions,
 )
-from backend.services.artifact_service import save_json_artifact
+from backend.services.artifact_service import (
+    save_json_artifact,
+    save_metrics_artifact,
+)
 
 from backend.agents.dataset_agent import DatasetAgent
 from backend.agents.feature_agent import FeatureAgent
@@ -28,7 +32,7 @@ from backend.services.mlflow_service import (
     log_artifact,
     end_mlflow_run,
 )
-
+from backend.services.artifact_types import METRICS
 
 class PipelineManager:
 
@@ -155,6 +159,27 @@ class PipelineManager:
                 "pipeline_execution_time",
                 pipeline_execution_time,
             )
+            
+            agent_executions = get_experiment_agent_executions(
+              db=db,
+              experiment_id=state.experiment_id,
+            )
+
+            pipeline_metrics = {
+             "pipeline_execution_time": pipeline_execution_time,
+            }
+
+            for execution in agent_executions:
+               if execution.execution_time is not None:
+                 pipeline_metrics[
+                  f"{execution.agent_name}_execution_time"
+                 ] = execution.execution_time
+                 
+            save_metrics_artifact(
+              db=db,
+              experiment_id=state.experiment_id,
+              metrics=pipeline_metrics,
+            )
 
             logger.info(
                 f"Pipeline completed in "
@@ -174,7 +199,7 @@ class PipelineManager:
               db=db,
               experiment_id=state.experiment_id,
               artifact_name="pipeline_summary.json",
-              artifact_type="metrics",
+              artifact_type=METRICS,
               data=state.summary,
              )
 

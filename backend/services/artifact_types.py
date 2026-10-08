@@ -1,0 +1,7 @@
+PIPELINE_SUMMARY = "summary"
+METRICS = "metrics"
+MODEL = "model"
+REPORT = "report"
+DATASET = "dataset"
+PROCESSED_DATASET = "processed_dataset"
+FEATURES = "features"
