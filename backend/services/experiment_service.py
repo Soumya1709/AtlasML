@@ -4,6 +4,13 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from backend.models.experiment import Experiment
+from backend.services.agent_execution_service import (
+    get_experiment_agent_executions,
+)
+
+from backend.services.artifact_service import (
+    get_experiment_artifacts,
+)
 
 
 def create_experiment(
@@ -87,3 +94,37 @@ def update_experiment_status(
     db.refresh(experiment)
 
     return experiment
+
+def get_experiment_summary(
+    db: Session,
+    experiment_id: str,
+):
+    experiment = get_experiment(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    if experiment is None:
+        return None
+
+    agent_executions = get_experiment_agent_executions(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    artifacts = get_experiment_artifacts(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    return {
+        "experiment_id": experiment.experiment_id,
+        "dataset_name": experiment.dataset_name,
+        "status": experiment.status,
+        "pipeline_status": experiment.pipeline_status,
+        "execution_time": experiment.execution_time,
+        "created_at": experiment.created_at,
+        "updated_at": experiment.updated_at,
+        "agents": agent_executions,
+        "artifacts": artifacts,
+    }

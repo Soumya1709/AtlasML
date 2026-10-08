@@ -38,6 +38,10 @@ from backend.services.artifact_service import (
     get_artifact,
     get_experiment_artifacts,
 )
+from backend.services.experiment_service import (
+    get_experiment_summary,
+)
+from backend.schemas.experiment_summary import ExperimentSummary
 
 
 router = APIRouter(
@@ -273,6 +277,27 @@ def download_artifact(
         filename=artifact.artifact_name,
         media_type="application/octet-stream",
     )
+    
+@router.get(
+    "/{experiment_id}/summary",
+    response_model=ExperimentSummary,
+)
+def get_summary(
+    experiment_id: str,
+    db: Session = Depends(get_db),
+):
+    summary = get_experiment_summary(
+        db=db,
+        experiment_id=experiment_id,
+    )
+
+    if summary is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Experiment not found",
+        )
+
+    return summary
 
 
 @router.get(
