@@ -1,3 +1,4 @@
+
 import time
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from backend.services.agent_execution_service import (
     get_next_attempt_number,
     get_experiment_agent_executions,
 )
+
 from backend.services.artifact_service import (
     save_json_artifact,
     save_metrics_artifact,
@@ -24,20 +26,21 @@ from backend.services.artifact_service import (
 
 from backend.agents.dataset_agent import DatasetAgent
 from backend.agents.feature_agent import FeatureAgent
+
 from backend.services.mlflow_service import (
     start_mlflow_run,
     log_pipeline_info,
     log_metric,
-    log_agent_metadata,
     log_artifact,
     end_mlflow_run,
 )
+
 from backend.services.artifact_types import METRICS
+
 
 class PipelineManager:
 
     def __init__(self):
-
         self.agents = [
             DatasetAgent(),
             FeatureAgent(),
@@ -59,19 +62,20 @@ class PipelineManager:
             state.dataset_path
         ).name
 
-        start_mlflow_run(
-            experiment_name="AtlasML",
-            run_name=state.experiment_id,
-        )
-
-        log_pipeline_info(
-            experiment_id=state.experiment_id,
-            dataset_name=dataset_name,
-            rows=state.summary.get("rows", 0),
-            columns=state.summary.get("columns", 0),
-        )
-
         try:
+
+            # Start MLflow tracking inside the try block
+            start_mlflow_run(
+                experiment_name="AtlasML",
+                run_name=state.experiment_id,
+            )
+
+            log_pipeline_info(
+                experiment_id=state.experiment_id,
+                dataset_name=dataset_name,
+                rows=state.summary.get("rows", 0),
+                columns=state.summary.get("columns", 0),
+            )
 
             update_experiment_status(
                 db=db,
@@ -80,6 +84,7 @@ class PipelineManager:
                 current_agent="DatasetAgent",
             )
 
+            # Execute pipeline agents
             for agent in self.agents:
 
                 agent_name = agent.__class__.__name__
@@ -119,10 +124,10 @@ class PipelineManager:
                         execution_id=execution.execution_id,
                         execution_time=agent_execution_time,
                     )
-                    
+
                     log_metric(
-                      f"{agent_name}_execution_time",
-                      agent_execution_time,
+                        f"{agent_name}_execution_time",
+                        agent_execution_time,
                     )
 
                     logger.info(
@@ -150,6 +155,7 @@ class PipelineManager:
 
                     raise
 
+            # Calculate total pipeline execution time
             pipeline_execution_time = round(
                 time.time() - pipeline_start,
                 2,
@@ -159,26 +165,29 @@ class PipelineManager:
                 "pipeline_execution_time",
                 pipeline_execution_time,
             )
-            
+
+            # Collect agent execution metrics
             agent_executions = get_experiment_agent_executions(
-              db=db,
-              experiment_id=state.experiment_id,
+                db=db,
+                experiment_id=state.experiment_id,
             )
 
             pipeline_metrics = {
-             "pipeline_execution_time": pipeline_execution_time,
+                "pipeline_execution_time": pipeline_execution_time,
             }
 
             for execution in agent_executions:
-               if execution.execution_time is not None:
-                 pipeline_metrics[
-                  f"{execution.agent_name}_execution_time"
-                 ] = execution.execution_time
-                 
+
+                if execution.execution_time is not None:
+                    pipeline_metrics[
+                        f"{execution.agent_name}_execution_time"
+                    ] = execution.execution_time
+
+            # Save metrics artifact
             save_metrics_artifact(
-              db=db,
-              experiment_id=state.experiment_id,
-              metrics=pipeline_metrics,
+                db=db,
+                experiment_id=state.experiment_id,
+                metrics=pipeline_metrics,
             )
 
             logger.info(
@@ -186,6 +195,7 @@ class PipelineManager:
                 f"{pipeline_execution_time} seconds"
             )
 
+            # Update experiment as completed
             update_experiment_status(
                 db=db,
                 experiment_id=state.experiment_id,
@@ -194,17 +204,22 @@ class PipelineManager:
                 execution_time=pipeline_execution_time,
                 pipeline_result=state.summary,
             )
-            
+
+            # Save pipeline summary artifact
             artifact = save_json_artifact(
-              db=db,
-              experiment_id=state.experiment_id,
-              artifact_name="pipeline_summary.json",
-              artifact_type=METRICS,
-              data=state.summary,
-             )
+                db=db,
+                experiment_id=state.experiment_id,
+                artifact_name="pipeline_summary.json",
+                artifact_type=METRICS,
+                data=state.summary,
+            )
 
-            log_artifact(artifact.file_path)
+            # Log summary artifact to MLflow
+            log_artifact(
+                artifact.file_path
+            )
 
+            # End successful MLflow run
             end_mlflow_run()
 
             return state
@@ -215,6 +230,7 @@ class PipelineManager:
                 "Pipeline Failed"
             )
 
+            # Update experiment as failed
             update_experiment_status(
                 db=db,
                 experiment_id=state.experiment_id,
@@ -223,6 +239,9 @@ class PipelineManager:
                 error_message=str(e),
             )
 
-            end_mlflow_run()
+            # End MLflow run with failed status
+            end_mlflow_run(
+                status="FAILED"
+            )
 
             raise

@@ -64,8 +64,13 @@ def log_artifact(file_path: str):
     mlflow.log_artifact(file_path)
 
 
-def end_mlflow_run():
-    mlflow.end_run()
 
-    logger.info("MLflow run completed.")
+def end_mlflow_run(status: str = "FINISHED"):
+    mlflow.end_run(status=status)
+
+    if status == "FAILED":
+        logger.warning("MLflow run ended with FAILED status.")
+    else:
+        logger.info("MLflow run completed.")
+
     
