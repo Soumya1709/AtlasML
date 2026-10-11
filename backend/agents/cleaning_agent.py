@@ -22,22 +22,23 @@ class CleaningAgent(BaseAgent):
             original_rows - len(dataframe)
         )
 
-        for column in dataframe.columns:
+        
+for column in dataframe.columns:
+    if dataframe[column].isnull().sum() == 0:
+        continue
 
-            if dataframe[column].isnull().sum() == 0:
-                continue
+    if dataframe[column].isnull().all():
+        dataframe.drop(columns=[column], inplace=True)
+        continue
 
-            if pd.api.types.is_numeric_dtype(
-                dataframe[column]
-            ):
-                dataframe[column] = dataframe[column].fillna(
-                    dataframe[column].median()
-                )
-
-            else:
-                dataframe[column] = dataframe[column].fillna(
-                    dataframe[column].mode()[0]
-                )
+    if pd.api.types.is_numeric_dtype(dataframe[column]):
+        dataframe[column] = dataframe[column].fillna(
+            dataframe[column].median()
+        )
+    else:
+        modes = dataframe[column].mode()
+        fill_value = modes.iloc[0] if not modes.empty else "Unknown"
+        dataframe[column] = dataframe[column].fillna(fill_value)
 
         state.cleaned_dataframe = dataframe
 
