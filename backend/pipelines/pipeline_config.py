@@ -1,5 +1,11 @@
 PIPELINE_AGENTS = [
-    "CleaningAgent",
     "DatasetAgent",
+    "CleaningAgent",
+    "EDAAgent",
     "FeatureAgent",
+    "ModelSelectionAgent",
+    "HyperparameterTuningAgent",
+    "EvaluationAgent",
+    "SHAPAgent",
+    "ReportAgent",
 ]

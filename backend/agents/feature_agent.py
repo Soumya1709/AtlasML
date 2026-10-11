@@ -1,6 +1,7 @@
 from backend.models.pipeline_state import PipelineState
 from backend.logger import logger
 from backend.services.mlflow_service import log_agent_metadata
+from backend.agents.base_agent import BaseAgent
 
 from backend.services.feature_engineering import (
     extract_date_features,
@@ -12,7 +13,7 @@ from backend.services.feature_engineering import (
 )
 
 
-class FeatureAgent:
+class FeatureAgent(BaseAgent):
 
     def run(self, state: PipelineState) -> PipelineState:
 
