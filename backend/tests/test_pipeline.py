@@ -1,5 +1,5 @@
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -58,7 +58,26 @@ def test_pipeline_marks_experiment_failed_when_agent_fails():
         ):
             manager.run_pipeline(state, MagicMock())
 
-    fail_execution.assert_called_once()
+    assert fail_execution.call_count == 3
+    assert fail_execution.call_args_list[0].kwargs["error_message"] == (
+    "Test agent failure"
+    )
+    assert fail_execution.call_args_list[1].kwargs["error_message"] == (
+    "Test agent failure"
+    )
+    assert fail_execution.call_args_list[2].kwargs["error_message"] == (
+    "Test agent failure"
+    )
+
+    update_status.assert_any_call(
+    db=ANY,
+    experiment_id="test-experiment-id",
+    status="failed",
+    current_agent="DatasetAgent",
+    error_message="Test agent failure",
+)
+
+    end_mlflow.assert_called_once_with(status="FAILED")
 
     failed_update = [
         call
