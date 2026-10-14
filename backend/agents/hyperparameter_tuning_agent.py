@@ -1,195 +1,190 @@
-import numpy as np
 
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, KFold
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
 from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    RandomForestRegressor,
-    ExtraTreesClassifier,
-    ExtraTreesRegressor,
-    HistGradientBoostingClassifier,
-    HistGradientBoostingRegressor,
-)
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import GridSearchCV, KFold, StratifiedKFold
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error
 from backend.agents.base_agent import BaseAgent
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
 
 
 class HyperparameterTuningAgent(BaseAgent):
-
     def run(self, state: PipelineState) -> PipelineState:
         state.current_agent = "HyperparameterTuningAgent"
         state.status = "running"
 
-        X = state.feature_dataframe
-        y = state.target_values
+        X_train = state.X_train
+        y_train = state.y_train
         candidates = state.selected_models
 
-        if X is None or y is None:
+        if X_train is None or y_train is None:
             raise ValueError(
-                "Tuning requires feature_dataframe and target_values."
+                "Training data is missing. Run TrainingAgent first."
             )
 
         if not candidates:
             raise ValueError(
-                "Tuning requires selected_models from ModelSelectionAgent."
-            )
-
-        if len(X) != len(y):
-            raise ValueError(
-                "Feature and target row counts do not match."
+                "No candidate models found. Run ModelSelectionAgent first."
             )
 
         problem_type = str(
-            state.summary.get("problem_type", "Unknown")
+            state.summary.get("problem_type", "")
         ).lower()
 
-        if problem_type == "classification":
+        is_classification = "classification" in problem_type
+
+        # Avoid CV failures on small datasets.
+        if is_classification:
+            min_class_count = int(y_train.value_counts().min())
+            cv_folds = min(3, min_class_count)
+
+            if cv_folds < 2:
+                raise ValueError(
+                    "At least two training examples per class are "
+                    "required for cross-validation."
+                )
+
             cv = StratifiedKFold(
-                n_splits=3,
+                n_splits=cv_folds,
                 shuffle=True,
                 random_state=42,
             )
             scoring = "f1_weighted"
-        elif problem_type == "regression":
+        else:
+            cv_folds = min(3, len(y_train))
+
+            if cv_folds < 2:
+                raise ValueError(
+                    "At least two training rows are required for tuning."
+                )
+
             cv = KFold(
-                n_splits=3,
+                n_splits=cv_folds,
                 shuffle=True,
                 random_state=42,
             )
-            scoring = "neg_root_mean_squared_error"
-        else:
-            raise ValueError(
-                f"Unsupported problem type: {problem_type}"
-            )
+            scoring = "neg_mean_squared_error"
 
-        results = {}
-        best_score = -np.inf
-        best_model = None
-        best_name = None
-        best_params = {}
+        # Small, generic grids. Unsupported parameters are omitted
+        # for each estimator.
+        parameter_options = {
+            "RandomForestClassifier": {
+                "model__n_estimators": [100, 200],
+                "model__max_depth": [None, 10],
+            },
+            "ExtraTreesClassifier": {
+                "model__n_estimators": [100, 200],
+                "model__max_depth": [None, 10],
+            },
+            "RandomForestRegressor": {
+                "model__n_estimators": [100, 200],
+                "model__max_depth": [None, 10],
+            },
+            "ExtraTreesRegressor": {
+                "model__n_estimators": [100, 200],
+                "model__max_depth": [None, 10],
+            },
+            "LogisticRegression": {
+                "model__C": [0.1, 1.0, 10.0],
+            },
+            "Ridge": {
+                "model__alpha": [0.1, 1.0, 10.0],
+            },
+            "KNeighborsClassifier": {
+                "model__n_neighbors": [3, 5],
+            },
+            "SVC": {
+                "model__C": [0.1, 1.0, 10.0],
+            },
+        }
+
+        tuned_models = {}
+        tuning_results = {}
+        failures = {}
 
         for name, estimator in candidates.items():
-            logger.info("Tuning candidate model: %s", name)
-
             try:
-                # Keep preprocessing inside CV to reduce leakage.
-                # The feature agent currently supplies transformed features,
-                # so this imputer mainly protects against remaining NaNs.
                 pipeline = Pipeline([
                     ("imputer", SimpleImputer(strategy="median")),
                     ("model", clone(estimator)),
                 ])
 
-                param_grid = self._parameter_grid(estimator)
+                # Match the grid to the actual estimator class.
+                class_name = estimator.__class__.__name__
+                param_grid = parameter_options.get(class_name, {})
 
-                search = GridSearchCV(
-                    estimator=pipeline,
-                    param_grid=param_grid,
-                    scoring=scoring,
-                    cv=cv,
-                    n_jobs=-1,
-                    refit=True,
-                    error_score="raise",
-                )
-                search.fit(X, y)
+                if param_grid:
+                    search = GridSearchCV(
+                        estimator=pipeline,
+                        param_grid=param_grid,
+                        scoring=scoring,
+                        cv=cv,
+                        n_jobs=-1,
+                        refit=True,
+                        error_score="raise",
+                    )
+                    search.fit(X_train, y_train)
 
-                score = float(search.best_score_)
-                results[name] = {
-                    "best_score": score,
-                    "best_params": search.best_params_,
-                    "scoring": scoring,
-                    "status": "completed",
+                    best_pipeline = search.best_estimator_
+                    best_params = search.best_params_
+                    best_score = float(search.best_score_)
+                else:
+                    # Models without a configured grid are still trained.
+                    best_pipeline = pipeline.fit(X_train, y_train)
+                    best_params = {}
+                    best_score = None
+
+                tuned_models[name] = best_pipeline
+                tuning_results[name] = {
+                    "best_params": best_params,
+                    "cv_score": best_score,
                 }
 
-                if score > best_score:
-                    best_score = score
-                    best_model = search.best_estimator_
-                    best_name = name
-                    best_params = search.best_params_
+                logger.info(
+                    "Tuning completed for %s", name
+                )
 
             except Exception as exc:
+                failures[name] = str(exc)
                 logger.exception("Tuning failed for %s", name)
-                results[name] = {
-                    "status": "failed",
-                    "error": str(exc),
-                }
 
-        if best_model is None:
+        if not tuned_models:
             raise RuntimeError(
-                "Hyperparameter tuning failed for every candidate model."
+                f"All candidate models failed during tuning: {failures}"
             )
 
-        state.best_model = best_model
-        state.trained_model = best_model
+        # Select the best CV-scoring model.
+        valid_scores = {
+            name: result["cv_score"]
+            for name, result in tuning_results.items()
+            if result["cv_score"] is not None
+        }
+
+        if valid_scores:
+            best_name = max(valid_scores, key=valid_scores.get)
+        else:
+            # If no model had a CV score, retain the first successfully
+            # fitted model. Evaluation will compare its test performance.
+            best_name = next(iter(tuned_models))
+
+        state.trained_models = tuned_models
+        state.best_model = tuned_models[best_name]
+        state.trained_model = state.best_model
+        state.best_model_name = best_name
+
         state.tuning_results = {
             "scoring": scoring,
-            "best_model_name": best_name,
-            "best_score": best_score,
-            "best_params": best_params,
-            "candidate_results": results,
+            "cv_folds": cv_folds,
+            "models": tuning_results,
+            "failed_models": failures,
+            "selected_model": best_name,
         }
 
         state.summary["hyperparameter_tuning"] = state.tuning_results
-        state.executed_agents.append("HyperparameterTuningAgent")
+
+        if "HyperparameterTuningAgent" not in state.executed_agents:
+            state.executed_agents.append("HyperparameterTuningAgent")
+
         state.status = "completed"
-
-        logger.info(
-            "Best model after tuning: %s (CV score: %.4f)",
-            best_name,
-            best_score,
-        )
         return state
-
-    @staticmethod
-    def _parameter_grid(estimator):
-        if isinstance(estimator, LogisticRegression):
-            return {
-                "model__C": [0.1, 1.0, 10.0],
-            }
-
-        if isinstance(estimator, (RandomForestClassifier, RandomForestRegressor)):
-            return {
-                "model__n_estimators": [100, 200],
-                "model__max_depth": [None, 10],
-            }
-
-        if isinstance(estimator, (ExtraTreesClassifier, ExtraTreesRegressor)):
-            return {
-                "model__n_estimators": [100, 200],
-                "model__max_depth": [None, 10],
-            }
-
-        if isinstance(estimator, (HistGradientBoostingClassifier,
-                                  HistGradientBoostingRegressor)):
-            return {
-                "model__learning_rate": [0.05, 0.1],
-                "model__max_iter": [100, 200],
-            }
-
-        if isinstance(estimator, KNeighborsClassifier):
-            return {
-                "model__n_neighbors": [3, 5, 7],
-                "model__weights": ["uniform", "distance"],
-            }
-
-        if isinstance(estimator, SVC):
-            return {
-                "model__C": [0.1, 1.0, 10.0],
-                "model__kernel": ["linear", "rbf"],
-            }
-
-        if isinstance(estimator, Ridge):
-            return {
-                "model__alpha": [0.1, 1.0, 10.0],
-            }
-
-        return {}
