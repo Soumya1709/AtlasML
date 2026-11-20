@@ -137,7 +137,8 @@ class EDAAgent(BaseAgent):
 
         state.eda_results = results
         state.summary["eda"] = results
-        state.executed_agents.append("EDAAgent")
+        if "EDAAgent" not in state.executed_agents:
+          state.executed_agents.append("EDAAgent")
         state.status = "completed"
 
         logger.info("EDAAgent completed successfully.")
