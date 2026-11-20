@@ -7,7 +7,19 @@ from sqlalchemy.orm import Session
 from backend.logger import logger
 from backend.models.pipeline_state import PipelineState
 
-from backend.services.experiment_service import (update_experiment_status,)
+from backend.agents.dataset_agent import DatasetAgent
+from backend.agents.cleaning_agent import CleaningAgent
+from backend.agents.eda_agent import EDAAgent
+from backend.agents.feature_agent import FeatureAgent
+from backend.agents.model_selection_agent import ModelSelectionAgent
+from backend.agents.training_agent import TrainingAgent
+from backend.agents.hyperparameter_tuning_agent import HyperparameterTuningAgent
+from backend.agents.evaluation_agent import EvaluationAgent
+from backend.agents.shap_agent import SHAPAgent
+from backend.agents.deployment_agent import DeploymentAgent
+from backend.agents.report_agent import ReportAgent
+
+from backend.services.experiment_service import update_experiment_status
 
 from backend.services.agent_execution_service import (
     create_agent_execution,
@@ -17,10 +29,12 @@ from backend.services.agent_execution_service import (
     get_experiment_agent_executions,
 )
 
-from backend.services.artifact_service import (save_json_artifact,save_metrics_artifact,)
-
-from backend.agents.dataset_agent import DatasetAgent
-from backend.agents.feature_agent import FeatureAgent
+from backend.services.artifact_service import (
+    save_json_artifact,
+    save_metrics_artifact,
+    create_file_artifact,
+    get_experiment_artifacts,
+)
 
 from backend.services.mlflow_service import (
     start_mlflow_run,
@@ -30,7 +44,13 @@ from backend.services.mlflow_service import (
     end_mlflow_run,
 )
 
-from backend.services.artifact_types import METRICS
+from backend.services.artifact_types import (
+    METRICS,
+    MODEL,
+    REPORT,
+)
+
+
 MAX_AGENT_ATTEMPTS = 3
 
 
@@ -39,8 +59,55 @@ class PipelineManager:
     def __init__(self):
         self.agents = [
             DatasetAgent(),
+            CleaningAgent(),
+            EDAAgent(),
             FeatureAgent(),
+            ModelSelectionAgent(),
+            TrainingAgent(),
+            HyperparameterTuningAgent(),
+            EvaluationAgent(),
+            SHAPAgent(),
+            DeploymentAgent(),
+            ReportAgent(),
         ]
+
+    def register_artifact(
+        self,
+        db: Session,
+        experiment_id: str,
+        artifact_name: str,
+        artifact_type: str,
+        file_path: str,
+    ):
+        path = Path(file_path)
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Artifact file not found: {file_path}"
+            )
+
+        existing_artifacts = get_experiment_artifacts(
+            db=db,
+            experiment_id=experiment_id,
+        )
+
+        for artifact in existing_artifacts:
+            if artifact.artifact_name == artifact_name:
+                artifact.file_path = str(path)
+                artifact.artifact_type = artifact_type
+
+                db.commit()
+                db.refresh(artifact)
+
+                return artifact
+
+        return create_file_artifact(
+            db=db,
+            experiment_id=experiment_id,
+            artifact_name=artifact_name,
+            artifact_type=artifact_type,
+            file_path=str(path),
+        )
 
     def run_pipeline(
         self,
@@ -48,30 +115,36 @@ class PipelineManager:
         db: Session,
     ) -> PipelineState:
 
-        logger.info(
-            "========== PIPELINE STARTED =========="
-        )
+        logger.info("========== PIPELINE STARTED ==========")
 
         pipeline_start = time.time()
-
-        dataset_name = Path(
-            state.dataset_path
-        ).name
+        dataset_name = Path(state.dataset_path).name
 
         try:
+            # Start MLflow tracking
+            start_mlflow_run(
+                experiment_name="AtlasML",
+                run_name=f"{dataset_name}_{state.experiment_id}",
+            )
 
-            # Start MLflow tracking inside the try block
-            
-            # Execute pipeline agents with automatic retries
+            log_pipeline_info(
+                experiment_id=state.experiment_id,
+                dataset_name=dataset_name,
+                rows=int(state.summary.get("rows") or 0),
+                columns=int(state.summary.get("columns") or 0),
+            )
+
+            # Execute all agents in sequence with retries
             for agent in self.agents:
 
                 agent_name = agent.__class__.__name__
 
-                logger.info(f"Running {agent_name}")
+                logger.info("Running %s", agent_name)
 
                 state.current_agent = agent_name
 
-                # Allow up to MAX_AGENT_ATTEMPTS per agent
+                agent_succeeded = False
+
                 for attempt_index in range(
                     1,
                     MAX_AGENT_ATTEMPTS + 1,
@@ -111,15 +184,17 @@ class PipelineManager:
                         )
 
                         logger.info(
-                            f"{agent_name} completed on attempt "
-                            f"{attempt_index} in "
-                            f"{agent_execution_time} seconds"
+                            "%s completed on attempt %s in %s seconds",
+                            agent_name,
+                            attempt_index,
+                            agent_execution_time,
                         )
 
-                        # Agent succeeded; move to the next agent.
+                        agent_succeeded = True
                         break
 
                     except Exception as agent_error:
+
                         agent_execution_time = round(
                             time.time() - agent_start,
                             2,
@@ -133,23 +208,30 @@ class PipelineManager:
                         )
 
                         logger.exception(
-                            f"{agent_name} failed on attempt "
-                            f"{attempt_index}/{MAX_AGENT_ATTEMPTS}"
+                            "%s failed on attempt %s/%s",
+                            agent_name,
+                            attempt_index,
+                            MAX_AGENT_ATTEMPTS,
                         )
 
                         if attempt_index == MAX_AGENT_ATTEMPTS:
                             logger.error(
-                                f"{agent_name} exhausted all "
-                                f"{MAX_AGENT_ATTEMPTS} attempts"
+                                "%s exhausted all retry attempts",
+                                agent_name,
                             )
                             raise
 
                         logger.warning(
-                            f"Retrying {agent_name}: "
-                            f"attempt {attempt_index + 1} "
-                            f"of {MAX_AGENT_ATTEMPTS}"
+                            "Retrying %s: attempt %s of %s",
+                            agent_name,
+                            attempt_index + 1,
+                            MAX_AGENT_ATTEMPTS,
                         )
 
+                if not agent_succeeded:
+                    raise RuntimeError(
+                        f"{agent_name} failed after all retry attempts."
+                    )
 
             # Calculate total pipeline execution time
             pipeline_execution_time = round(
@@ -173,7 +255,6 @@ class PipelineManager:
             }
 
             for execution in agent_executions:
-
                 if execution.execution_time is not None:
                     pipeline_metrics[
                         f"{execution.agent_name}_execution_time"
@@ -186,12 +267,62 @@ class PipelineManager:
                 metrics=pipeline_metrics,
             )
 
-            logger.info(
-                f"Pipeline completed in "
-                f"{pipeline_execution_time} seconds"
+            # Save final pipeline summary
+            state.summary["executed_agents"] = list(
+                state.executed_agents
+            )
+            state.summary["pipeline_execution_time"] = (
+                pipeline_execution_time
+            )
+            state.summary["pipeline_status"] = "completed"
+
+            summary_artifact = save_json_artifact(
+                db=db,
+                experiment_id=state.experiment_id,
+                artifact_name="pipeline_summary.json",
+                artifact_type=METRICS,
+                data=state.summary,
             )
 
-            # Update experiment as completed
+            log_artifact(summary_artifact.file_path)
+
+            # Register and log report artifact
+            if state.report:
+                report_path = state.report.get("report_path")
+
+                if report_path and Path(report_path).exists():
+                    self.register_artifact(
+                        db=db,
+                        experiment_id=state.experiment_id,
+                        artifact_name="report.json",
+                        artifact_type=REPORT,
+                        file_path=report_path,
+                    )
+
+                    log_artifact(report_path)
+
+            # Register and log deployment artifacts
+            if state.deployment:
+                deployment_artifacts = [
+                    ("model_path", "model.pkl", MODEL),
+                    ("metadata_path", "model_metadata.json", REPORT),
+                ]
+
+                for key, artifact_name, artifact_type in deployment_artifacts:
+                    file_path = state.deployment.get(key)
+
+                    if file_path and Path(file_path).exists():
+                        self.register_artifact(
+                            db=db,
+                            experiment_id=state.experiment_id,
+                            artifact_name=artifact_name,
+                            artifact_type=artifact_type,
+                            file_path=file_path,
+                        )
+
+                        log_artifact(file_path)
+
+            # Mark experiment as completed
             update_experiment_status(
                 db=db,
                 experiment_id=state.experiment_id,
@@ -201,32 +332,22 @@ class PipelineManager:
                 pipeline_result=state.summary,
             )
 
-            # Save pipeline summary artifact
-            artifact = save_json_artifact(
-                db=db,
-                experiment_id=state.experiment_id,
-                artifact_name="pipeline_summary.json",
-                artifact_type=METRICS,
-                data=state.summary,
-            )
+            state.current_agent = "Completed"
+            state.status = "completed"
 
-            # Log summary artifact to MLflow
-            log_artifact(
-                artifact.file_path
-            )
-
-            # End successful MLflow run
             end_mlflow_run()
+
+            logger.info(
+                "========== PIPELINE COMPLETED IN %s SECONDS ==========",
+                pipeline_execution_time,
+            )
 
             return state
 
         except Exception as e:
 
-            logger.exception(
-                "Pipeline Failed"
-            )
+            logger.exception("Pipeline Failed")
 
-            # Update experiment as failed
             update_experiment_status(
                 db=db,
                 experiment_id=state.experiment_id,
@@ -235,9 +356,6 @@ class PipelineManager:
                 error_message=str(e),
             )
 
-            # End MLflow run with failed status
-            end_mlflow_run(
-                status="FAILED"
-            )
+            end_mlflow_run(status="FAILED")
 
             raise
