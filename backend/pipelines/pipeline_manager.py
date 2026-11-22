@@ -285,10 +285,12 @@ class PipelineManager:
             )
 
             log_artifact(summary_artifact.file_path)
+            
 
             # Register and log report artifact
             if state.report:
                 report_path = state.report.get("report_path")
+                
 
                 if report_path and Path(report_path).exists():
                     self.register_artifact(
@@ -310,6 +312,7 @@ class PipelineManager:
 
                 for key, artifact_name, artifact_type in deployment_artifacts:
                     file_path = state.deployment.get(key)
+                    
 
                     if file_path and Path(file_path).exists():
                         self.register_artifact(
