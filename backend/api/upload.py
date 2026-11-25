@@ -147,6 +147,7 @@ async def upload_dataset(
 
 
         return UploadResponse(
+            experiment_id=experiment.experiment_id,
             original_filename=file.filename,
             saved_path=saved_path,
             summary=DatasetSummary(
