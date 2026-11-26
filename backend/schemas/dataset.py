@@ -59,9 +59,7 @@ class DatasetSummary(BaseModel):
 
 
 class UploadResponse(BaseModel):
-
+    experiment_id: str
     original_filename: str
-
     saved_path: str
-
     summary: DatasetSummary

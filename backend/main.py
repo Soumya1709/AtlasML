@@ -4,12 +4,22 @@ from backend.api.upload import router as upload_router
 from backend.api.pipeline import router as pipeline_router
 from backend.api.experiment import router as experiment_router
 from backend.api.health import router as health_router
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 
 app = FastAPI(
     title="AtlasML",
     description="Autonomous Machine Learning Research Scientist",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
